@@ -3,11 +3,13 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/ko6ejv/zbm2-cw-tool/releases/latest"><img alt="Download" src="https://img.shields.io/github/v/release/ko6ejv/zbm2-cw-tool?label=download&color=ff8c00&labelColor=000000&style=for-the-badge"></a>
-  <a href="https://github.com/ko6ejv/zbm2-cw-tool/actions/workflows/ci.yml"><img alt="Tests" src="https://img.shields.io/github/actions/workflow/status/ko6ejv/zbm2-cw-tool/ci.yml?branch=main&label=tests&color=ff8c00&labelColor=000000&style=for-the-badge"></a>
-  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-ff8c00?labelColor=000000&style=for-the-badge"></a>
-  <img alt="Windows | Linux" src="https://img.shields.io/badge/windows%20%7C%20linux-ffb000?labelColor=000000&style=for-the-badge">
-  <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-ffb000?labelColor=000000&style=for-the-badge">
+  <a href="https://github.com/ko6ejv/zbm2-cw-tool/releases/latest"><img alt="Download for Windows" src="docs/badges/download.svg" height="44"></a>
+  <a href="LICENSE"><img alt="MIT license" src="docs/badges/license.svg" height="44"></a>
+  <img alt="Windows | Linux" src="docs/badges/platform.svg" height="44">
+  <img alt="Python 3.10+" src="docs/badges/python.svg" height="44">
+  <img alt="Neural decoder" src="docs/badges/decoder.svg" height="44">
+  <br>
+  <a href="https://github.com/ko6ejv/zbm2-cw-tool/actions/workflows/ci.yml"><img alt="Tests" src="https://github.com/ko6ejv/zbm2-cw-tool/actions/workflows/ci.yml/badge.svg"></a>
 </p>
 
 <p align="center">
