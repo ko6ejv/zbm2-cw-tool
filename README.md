@@ -1,3 +1,23 @@
+<p align="center">
+  <img src="docs/banner.png" alt="ZBM2 CW Tool" width="100%">
+</p>
+
+<p align="center">
+  <a href="https://github.com/ko6ejv/zbm2-cw-tool/releases/latest"><img alt="Download" src="https://img.shields.io/github/v/release/ko6ejv/zbm2-cw-tool?label=download&color=ff8c00&labelColor=000000&style=for-the-badge"></a>
+  <a href="https://github.com/ko6ejv/zbm2-cw-tool/actions/workflows/ci.yml"><img alt="Tests" src="https://img.shields.io/github/actions/workflow/status/ko6ejv/zbm2-cw-tool/ci.yml?branch=main&label=tests&color=ff8c00&labelColor=000000&style=for-the-badge"></a>
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-ff8c00?labelColor=000000&style=for-the-badge"></a>
+  <img alt="Windows | Linux" src="https://img.shields.io/badge/windows%20%7C%20linux-ffb000?labelColor=000000&style=for-the-badge">
+  <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-ffb000?labelColor=000000&style=for-the-badge">
+</p>
+
+<p align="center">
+  <b><a href="https://github.com/ko6ejv/zbm2-cw-tool/releases/latest">Download</a></b> &nbsp;·&nbsp;
+  <a href="#what-it-does">Features</a> &nbsp;·&nbsp;
+  <a href="#install">Install</a> &nbsp;·&nbsp;
+  <a href="#supported-setups-the-wizard-configures-these">Radios</a> &nbsp;·&nbsp;
+  <a href="#staying-legal">Staying legal</a>
+</p>
+
 # ZBM2 CW Tool
 
 **CW for people who can't copy CW yet.** It decodes Morse from your radio, translates the shorthand into plain English, matches the other operator's speed, and sends your replies for you. Along the way it teaches you the code by ear.
@@ -36,7 +56,7 @@ Built for brand-new hams, especially **Technicians**, who have CW-only privilege
 ## Install
 
 ### Windows
-Download **ZBM2-CW-Tool-Setup-x.y.z.exe** from [Releases](../../releases/latest), run it, and the setup wizard opens on first launch. Everything (Python, the decoder model) is bundled, so there's nothing else to install. The **HELP** button (top right) has a one-page quick start; hover over anything for a tip.
+Download **ZBM2-CW-Tool-Setup-x.y.z.exe** from [Releases](https://github.com/ko6ejv/zbm2-cw-tool/releases/latest), run it, and the setup wizard opens on first launch. Everything (Python, the decoder model) is bundled, so there's nothing else to install. The **HELP** button (top right) has a one-page quick start; hover over anything for a tip.
 A portable zip is also attached if you don't want to install.
 
 ### From source (Windows / Linux; macOS should work but is untested)
