@@ -141,7 +141,7 @@ class LogTab:
                 conf = ON.lotw_confirmations(c['lotw_user'], c['lotw_pass'])
                 self.app.save_lotw_conf(conf)
                 self.app.ui_q.put(('online_msg', f'LoTW: {len(conf)} confirmations downloaded'))
-                self.app.root.after(0, self.refresh)
+                self.app._ui(self.refresh)
             except Exception as e:
                 self.app.ui_q.put(('online_err', f'LoTW: {e}'))
         threading.Thread(target=job, daemon=True).start()
