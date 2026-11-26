@@ -1035,7 +1035,11 @@ class App:
                     if rx and kind in ('segment', 'chat_seg'):
                         self._rx_text(''.join(rx))
                         rx = []
-                    self._event(kind, val)
+                    try:
+                        self._event(kind, val)
+                    except Exception:                  # one bad event must never stop the screen updating
+                        import sys as _sys
+                        _sys.excepthook(*_sys.exc_info())
         except queue.Empty:
             pass
         if rx:
@@ -1043,7 +1047,11 @@ class App:
         if txc:
             self._tx_chars(''.join(txc))
         for kind, val in latest.items():
-            self._event(kind, val)
+            try:
+                self._event(kind, val)
+            except Exception:
+                import sys as _sys
+                _sys.excepthook(*_sys.exc_info())
         self.root.after(30, self._poll)
 
     def _rx_text(self, val):
@@ -1101,7 +1109,8 @@ class App:
                 self.lbl_freq.config(text=f'{f // 1000000}.{(f // 1000) % 1000:03d}.{(f % 1000) // 10:02d}')
                 self.lbl_rig.config(text=f'{self.mode}  {Q.band_for(f)} | {self.rig.name}  [OK]')
                 b = Q.band_for(f)
-                if b in BAND_CW and self.root.focus_get() is not self.cb_band:
+                foc = str(self.root.tk.call('focus'))             # focus_get() raises while a list is open
+                if b in BAND_CW and not foc.startswith(str(self.cb_band)) and 'popdown' not in foc:
                     self.v_band.set(b)
             else:
                 self.lbl_rig.config(text=f'CAT: {self.rig_err or "not connected"}')
