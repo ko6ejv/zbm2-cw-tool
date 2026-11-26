@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ZBM2 CW Tool installer for the ClockworkPi uConsole (CM4) and other Raspberry Pi OS 64-bit machines.
+# ZBM2 CW Tool installer for the ClockworkPi uConsole (CM4 / CM5) and other Raspberry Pi OS 64-bit machines.
 #
 #   curl -fsSL https://raw.githubusercontent.com/ko6ejv/zbm2-cw-tool/main/install_uconsole.sh | bash
 #
@@ -17,6 +17,23 @@ arch="$(uname -m)"
 case "$arch" in
   aarch64|x86_64) ;;
   *) say "Note: $arch is a 32-bit OS. The app runs, but the neural decoder needs 64-bit Raspberry Pi OS." ;;
+esac
+
+model="$(tr -d '\0' </proc/device-tree/model 2>/dev/null || true)"
+[ -n "$model" ] && echo "Board: $model"
+os_name="$(sed -n 's/^PRETTY_NAME="\{0,1\}\([^"]*\)"\{0,1\}$/\1/p' /etc/os-release 2>/dev/null)"
+echo "OS: ${os_name:-unknown}"
+case "$model" in
+  *"Compute Module 5"*)
+    # CM5 on the uConsole needs the ClockworkPi CM5 overlay (Rex's Bookworm 6.12 / Trixie images have it).
+    cfgtxt=/boot/firmware/config.txt
+    if [ -f "$cfgtxt" ] && ! grep -q 'clockworkpi-uconsole-cm5' "$cfgtxt"; then
+      say "CM5: $cfgtxt has no clockworkpi-uconsole-cm5 overlay. Use a uConsole CM5 image (Rex's Bookworm 6.12 or Trixie)."
+    fi
+    if ! compgen -G '/sys/class/net/wl*' >/dev/null; then
+      echo "CM5: no Wi-Fi found. A CM5 without Wi-Fi can't use the uConsole's Wi-Fi; plug in a USB Wi-Fi adapter if you need it."
+    fi
+    ;;
 esac
 
 say "1/6  System packages"

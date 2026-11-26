@@ -33,3 +33,26 @@ jobs:
           .venv/bin/pip install -q pytest
           .venv/bin/python -m pytest -q tests/test_all.py
           .venv/bin/python tests/bench_deepcw.py
+
+  # Same installer on the Debian releases the uConsole images are built on:
+  # Bookworm (CM4, CM5 6.12 image, Python 3.11) and Trixie (newest CM5 image, Python 3.13).
+  arm64-debian:
+    runs-on: ubuntu-24.04-arm
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ['debian:bookworm', 'debian:trixie']
+    container: ${{ matrix.image }}
+    steps:
+      - run: apt-get update -qq && apt-get install -y -qq sudo git ca-certificates
+      - uses: actions/checkout@v4
+      - name: Install + test on ${{ matrix.image }}
+        run: |
+          git config --global --add safe.directory '*'
+          export USER=root ZBM2_REPO="file://$GITHUB_WORKSPACE" ZBM2_DIR="$HOME/zbm2-cw-tool"
+          bash install_uconsole.sh
+          cd "$ZBM2_DIR"
+          .venv/bin/pip install -q pytest
+          .venv/bin/python --version
+          .venv/bin/python -m pytest -q tests/test_all.py
+          .venv/bin/python tests/bench_deepcw.py

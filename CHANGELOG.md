@@ -1,3 +1,9 @@
+## ZBM2 CW Tool 3.3.1 - uConsole CM5
+
+- uConsole CM5 support: installer reports board/OS, checks the CM5 overlay, warns on a CM5 without Wi-Fi.
+- CI runs the installer and tests on ARM64 Debian Bookworm and Trixie.
+- Neural decoder threads scale with the CPU; `neural_threads` override.
+
 ## ZBM2 CW Tool 3.3.0 - uConsole edition
 
 **CW for people who can't copy CW yet. Putting competent operators on the net.**

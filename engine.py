@@ -222,7 +222,8 @@ class Engine:
             try:
                 from deepcw import DeepCW, available
                 if available() and fs % 3200 == 0:
-                    self.deep = DeepCW(fs, width_hz=float(self.cfg.get('neural_width_hz', 250)))
+                    self.deep = DeepCW(fs, width_hz=float(self.cfg.get('neural_width_hz', 250)),
+                                      threads=int(self.cfg.get('neural_threads', 0)) or None)
             except Exception:
                 import sys as _sys
                 _sys.excepthook(*_sys.exc_info())

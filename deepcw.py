@@ -41,8 +41,11 @@ class DeepCW:
     FIRST_S = 2.0
     TONE_JUMP_HZ = 25.0    # a bigger tone change = a different station: start fresh
 
-    def __init__(self, fs=48000, width_hz=250.0, threads=2):
+    def __init__(self, fs=48000, width_hz=250.0, threads=None):
         import onnxruntime as ort
+        if not threads:      # half the cores (2 on a CM4/CM5), leaves room for audio + GUI
+            threads = max(1, min(4, (os.cpu_count() or 2) // 2))
+        self.threads = threads
         self.meta = json.load(open(META))
         so = ort.SessionOptions()
         so.intra_op_num_threads = threads

@@ -8,7 +8,7 @@
   <img alt="Windows | Linux" src="docs/badges/platform.svg" height="22">
   <img alt="Python 3.10+" src="docs/badges/python.svg" height="22">
   <img alt="Neural decoder" src="docs/badges/decoder.svg" height="22">
-  <a href="#clockworkpi-uconsole-cm4--raspberry-pi"><img alt="uConsole CM4 ready" src="docs/badges/uconsole.svg" height="22"></a>
+  <a href="#clockworkpi-uconsole-cm4--cm5--raspberry-pi"><img alt="uConsole CM4 / CM5 ready" src="docs/badges/uconsole.svg" height="22"></a>
   <br>
   <a href="https://github.com/ko6ejv/zbm2-cw-tool/actions/workflows/ci.yml"><img alt="Tests" src="https://github.com/ko6ejv/zbm2-cw-tool/actions/workflows/ci.yml/badge.svg"></a>
 </p>
@@ -17,7 +17,7 @@
   <b><a href="https://github.com/ko6ejv/zbm2-cw-tool/releases/latest">Download</a></b> &nbsp;·&nbsp;
   <a href="#what-it-does">Features</a> &nbsp;·&nbsp;
   <a href="#install">Install</a> &nbsp;·&nbsp;
-  <a href="#clockworkpi-uconsole-cm4--raspberry-pi">uConsole</a> &nbsp;·&nbsp;
+  <a href="#clockworkpi-uconsole-cm4--cm5--raspberry-pi">uConsole</a> &nbsp;·&nbsp;
   <a href="#supported-setups-the-wizard-configures-these">Radios</a> &nbsp;·&nbsp;
   <a href="#staying-legal">Staying legal</a>
 </p>
@@ -67,7 +67,7 @@ Built for brand-new hams, especially **Technicians**, who have CW-only privilege
 Download **ZBM2-CW-Tool-Setup-x.y.z.exe** from [Releases](https://github.com/ko6ejv/zbm2-cw-tool/releases/latest), run it, and the setup wizard opens on first launch. Everything (Python, the decoder model) is bundled, so there's nothing else to install. The **HELP** button (top right) has a one-page quick start; hover over anything for a tip.
 A portable zip is also attached if you don't want to install.
 
-### ClockworkPi uConsole (CM4) / Raspberry Pi
+### ClockworkPi uConsole (CM4 / CM5) / Raspberry Pi
 <p align="center"><img src="docs/banner-uconsole.svg" alt="ZBM2 CW Tool - uConsole edition" width="100%"></p>
 
 A field CW station in your pocket: uConsole + DigiRig + FT-857D / FT-891 (or any radio below).
@@ -82,7 +82,14 @@ It installs everything (Python, the neural decoder, Hamlib, serial-port access) 
 
 - The screen switches to a **compact layout** automatically on 720-line screens (force it with `"layout": "compact"` in config.json).
 - No F-keys needed: **Ctrl+1 ... Ctrl+8** = F1 ... F8.
-- Tested on every change on GitHub's ARM64 machines (installer, tests, and the neural decoder at about 30x faster than real time). CM5 is next.
+- Tested on every change on GitHub's ARM64 machines, on Debian Bookworm and Trixie (installer, tests, and the neural decoder at about 30x faster than real time).
+
+**CM4 vs CM5** - same installer, same app. Notes for the CM5:
+- Use a uConsole CM5 image: Rex's **ClockworkPi Bookworm 6.12** or the newer **Trixie** image (its `config.txt` needs `dtoverlay=clockworkpi-uconsole-cm5` under `[pi5]`; the installer checks). Flash it with Raspberry Pi Imager **without** OS customization settings, or it won't boot.
+- A CM5 *without* Wi-Fi can't use the uConsole's Wi-Fi; use a USB Wi-Fi adapter for the install.
+- The uConsole's own speaker/headphone audio crackles on a CM5 below about half battery. Radio audio goes through the DigiRig / radio USB sound card, not that jack, so decoding isn't affected.
+- Radxa CM5 is a different board and image (no audio driver yet); not tested.
+- The neural decoder uses half the cores (2 on a CM4/CM5). Change with `"neural_threads": 3` in config.json.
 
 **Radio hookup** - pick your radio in the Setup Wizard and these are filled in for you:
 
