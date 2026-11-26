@@ -491,7 +491,11 @@ class Engine:
         if not hasattr(rig, 'cmd'):
             return False, 'no CAT tuner command (needs Hamlib CAT)'
         from radios import RADIOS
-        preset = RADIOS.get(self.cfg.get('radio', ''), {}).get('tuner')
+        r = RADIOS.get(self.cfg.get('radio') or '') or RADIOS.get(self.cfg.get('rig_model_name') or '')
+        if not r:                                          # set up before radio presets existed: match the model
+            r = next((v for v in RADIOS.values() if v.get('rig_model') == int(self.cfg.get('rig_model', 0) or 0)
+                      and v.get('tuner')), {})
+        preset = r.get('tuner')
         if preset and hasattr(rig, 'raw'):                 # radio-specific raw CAT (e.g. FTX-1 AC103;)
             try:
                 if 'RPRT -' not in rig.raw(preset):

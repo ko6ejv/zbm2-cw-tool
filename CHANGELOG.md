@@ -1,3 +1,7 @@
+## ZBM2 CW Tool 3.4.4
+
+- TUNE: find the radio's tuner command by Hamlib model for configs made before radio presets.
+
 ## ZBM2 CW Tool 3.4.3
 
 - TUNE fix: raw CAT tuner commands go over rigctld's plain protocol (the extended one never answers W).
