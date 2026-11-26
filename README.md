@@ -3,11 +3,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/ko6ejv/zbm2-cw-tool/releases/latest"><img alt="Download for Windows" src="docs/badges/download.svg" height="44"></a>
-  <a href="LICENSE"><img alt="MIT license" src="docs/badges/license.svg" height="44"></a>
-  <img alt="Windows | Linux" src="docs/badges/platform.svg" height="44">
-  <img alt="Python 3.10+" src="docs/badges/python.svg" height="44">
-  <img alt="Neural decoder" src="docs/badges/decoder.svg" height="44">
+  <a href="https://github.com/ko6ejv/zbm2-cw-tool/releases/latest"><img alt="Download for Windows" src="docs/badges/download.svg" height="22"></a>
+  <a href="LICENSE"><img alt="MIT license" src="docs/badges/license.svg" height="22"></a>
+  <img alt="Windows | Linux" src="docs/badges/platform.svg" height="22">
+  <img alt="Python 3.10+" src="docs/badges/python.svg" height="22">
+  <img alt="Neural decoder" src="docs/badges/decoder.svg" height="22">
   <br>
   <a href="https://github.com/ko6ejv/zbm2-cw-tool/actions/workflows/ci.yml"><img alt="Tests" src="https://github.com/ko6ejv/zbm2-cw-tool/actions/workflows/ci.yml/badge.svg"></a>
 </p>
