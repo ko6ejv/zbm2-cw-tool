@@ -338,7 +338,7 @@ class SoftCW:
     tone comes from the fast decoder (or the operator); a speed hint (the fast decoder's lock)
     is used when offered; otherwise a background search tries a grid of speeds on the last 10 s.
     """
-    GRID_WPM = (12, 15, 19, 24, 30, 38, 46)
+    GRID_WPM = (10, 11, 12, 13, 14, 15, 16, 18, 19, 21, 23, 25, 27, 29, 31, 34, 37, 40, 43, 47, 50)
     HOP_MS = 4.0
 
     def __init__(self, fs=48000):
@@ -458,6 +458,8 @@ class SoftCW:
             if best is None or sc > best[0]:
                 best = (sc, wpm)
         self.last_search = best
+        if best and best[1] in (self.GRID_WPM[0], self.GRID_WPM[-1]):
+            return None              # winner at the edge of the grid = band noise, not a speed
         return best
 
     def _refine(self):
