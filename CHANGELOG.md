@@ -1,3 +1,10 @@
+## ZBM2 CW Tool 3.5.0
+
+- Reverse Beacon Network: per-band activity in the BAND list, SPOTS window with click-to-tune.
+- Their speed measured by DeepCW from its own letter timing; dit/dah strip from DeepCW letters; soft decoder not run with DeepCW.
+- DSP thread can't die; no startup race; worker threads post to the UI queue.
+- Finer fallback speed grid; UI smoke tests in CI.
+
 ## ZBM2 CW Tool 3.4.7
 
 - Guard blocks TX when CAT is configured but not answering; audio keying checked at dial +/- tone; 60 m channel centres only.
