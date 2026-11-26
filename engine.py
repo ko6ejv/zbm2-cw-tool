@@ -85,6 +85,7 @@ class Engine:
         self.emit = emit                     # emit(kind, payload) - called from engine threads
         self._their_wpm = None               # read by the DSP thread from its first block
         self.deep = None
+        self.soft = self.comb = self.tonefinder = None     # set by _new_decoder; DSP thread may look first
         self.audio_q = queue.Queue(maxsize=200)
         self.stream = None
         self.decoder = None
@@ -288,6 +289,16 @@ class Engine:
 
     # ================= DSP =================
     def _dsp_loop(self):
+        """Runs forever: one bad block (or a decoder swap mid-block) is logged, never fatal."""
+        while True:
+            try:
+                self._dsp_run()
+            except Exception:
+                import sys as _sys
+                _sys.excepthook(*_sys.exc_info())
+                time.sleep(0.05)
+
+    def _dsp_run(self):
         last_meter = last_spec = last_skim = 0
         ring = np.zeros(16384, dtype=np.float32)            # ~3 Hz bins for narrow spans
         win = np.hanning(16384).astype(np.float32)
