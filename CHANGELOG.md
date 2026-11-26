@@ -1,3 +1,7 @@
+## ZBM2 CW Tool 3.4.6
+
+- BAND list no longer stops the screen updating while its dropdown is open; UI pump survives a bad event.
+
 ## ZBM2 CW Tool 3.4.5
 
 - THEIR SPEED: big changes must hold 6 s; post-pause speed jumps need two agreeing searches (25 WPM was read as 46).
