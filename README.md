@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/banner.png" alt="ZBM2 CW Tool" width="100%">
+  <img src="docs/banner.svg" alt="ZBM2 CW Tool" width="100%">
 </p>
 
 <p align="center">
