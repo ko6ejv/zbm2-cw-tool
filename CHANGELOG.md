@@ -1,3 +1,10 @@
+## ZBM2 CW Tool 3.4.0
+
+- BAND list (CAT band change with per-band memory) and TUNE button (CAT tuner; carrier fallback for autotuners).
+- HF band conditions as day/night dots (N0NBH), refreshed every 30 min.
+- Live dit/dah strip over the spectrum: orange RX, red TX.
+- Station line shows the real keying and PTT.
+
 ## ZBM2 CW Tool 3.3.1 - uConsole CM5
 
 - uConsole CM5 support: installer reports board/OS, checks the CM5 overlay, warns on a CM5 without Wi-Fi.

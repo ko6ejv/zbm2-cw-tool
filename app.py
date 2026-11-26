@@ -14,7 +14,8 @@ import rigcontrol as RC
 import qso as Q
 import plain as PL
 import online as ON
-from engine import Engine, dev_labels, find_dev, find_dev_like
+from engine import Engine, dev_labels, find_dev, find_dev_like, BAND_CW
+from morse import code_for
 from alerts import missing_fields_alert, license_block_alert
 from endings import Ender
 from qcodes import define as qdefine
@@ -158,8 +159,22 @@ class App:
         stats = tk.Frame(hdr, bg=BG)
         stats.pack(side='right', anchor='n')
         self._stats_frame = stats
-        self.lbl_freq = ttk.Label(stats, text='--.---.---', style='Big.TLabel')
-        self.lbl_freq.grid(row=0, column=0, columnspan=3, sticky='e')
+        fr0 = tk.Frame(stats, bg=BG)
+        fr0.grid(row=0, column=0, columnspan=3, sticky='e')
+        self.v_band = tk.StringVar(value=Q.band_for(self.cfg.get('freq', 0)) or 'BAND')
+        self.cb_band = ttk.Combobox(fr0, textvariable=self.v_band, values=list(BAND_CW), width=5,
+                                    state='readonly')
+        self.cb_band.pack(side='left', padx=(0, 4))
+        self.cb_band.bind('<<ComboboxSelected>>', lambda e: self._qsy_band(self.v_band.get()))
+        Tip(self.cb_band, 'Change band (CAT). Goes back to where you last were on that band, '
+                          'else a common CW frequency.')
+        b_tune = ttk.Button(fr0, text='TUNE', width=5, command=self._tune)
+        b_tune.pack(side='left', padx=(0, 8))
+        Tip(b_tune, "Start the radio's antenna tuner (built-in or external ATU) by CAT. Radios without a "
+                    'CAT tuner command can send a short carrier for an automatic tuner (LDG etc.).')
+        self.lbl_freq = ttk.Label(fr0, text='--.---.---', style='Big.TLabel')
+        self.lbl_freq.pack(side='left')
+        self._build_cond(stats)
         self.lbl_rig = ttk.Label(stats, text='rig: --', style='Dim.TLabel')
         self.lbl_rig.grid(row=1, column=0, columnspan=3, sticky='e')
         ttk.Button(stats, text='Setup Wizard', command=lambda: SetupWizard(self)).grid(row=2, column=0, padx=2, pady=2)
@@ -299,6 +314,8 @@ class App:
         Tip(sg, 'Software RX boost in dB, for radios whose USB audio is too quiet. '
                 'Raise it until the RX level reads about -20 dB. Too much shows CLIP!')
         self.flash = tk.Label(specf, text='', bg=ACC, fg=BG, font=(UI, -48), padx=14)
+        self.morse = MorseStrip(self.root, self.spec, C)
+        self.morse.place()
         # DOS alert banner (hidden until something happens)
         self.banner = tk.Frame(main, bg=ACC, highlightthickness=2, highlightbackground=ACC)
         self.b_head = tk.Label(self.banner, text='', bg=ACC, fg=BG, font=(UI, -18 if C else -24), anchor='w', padx=8)
@@ -591,6 +608,67 @@ class App:
         self.eng.stop_tx()
         self.sysmsg('TX aborted')
 
+    # ---- band change / tuner / band conditions ----
+    def _qsy_band(self, band):
+        def job():
+            try:
+                hz = self.eng.qsy_band(band)
+                save_cfg(self.cfg)
+                self.root.after(0, lambda: self.set_status(f'{band}: {hz / 1e6:.3f} MHz'))
+            except Exception as e:
+                m = f'Band change: {e}'
+                self.root.after(0, lambda: self.set_status(m, err=True))
+        threading.Thread(target=job, daemon=True).start()
+
+    def _tune(self):
+        def job():
+            ok, msg = self.eng.tune_antenna()
+            self.root.after(0, lambda: self._tune_done(ok, msg))
+        threading.Thread(target=job, daemon=True).start()
+
+    def _tune_done(self, ok, msg):
+        if ok or msg != 'no CAT tuner':
+            self.set_status(msg if ok else f'Tune: {msg}', err=not ok)
+            return
+        if self.cfg['key_method'] == 'rigkeyer':
+            self.set_status("Tune: this radio has no CAT tuner command - press the radio's TUNE", err=True)
+            return
+        if messagebox.askyesno('Tune', 'This radio has no CAT tuner command.\n\nSend a 5-second carrier so an '
+                               'automatic tuner (LDG etc.) can tune?\nTurn the power down first.',
+                               parent=self.root):
+            ok, msg = self.eng.tune_carrier(5)
+            self.set_status(msg if ok else f'Tune: {msg}', err=not ok)
+
+    COND_COL = {'good': '#3cdc3c', 'fair': '#ffe000', 'poor': '#ff3c00'}
+
+    def _build_cond(self, parent):
+        f = tk.Frame(parent, bg=BG)
+        f.grid(row=0, column=3, columnspan=2, rowspan=2, sticky='ne', padx=(8, 2))
+        fs = -11 if self.compact else -13
+        tk.Label(f, text='BANDS  day night', bg=BG, fg=DIM, font=(UI, fs)).grid(row=0, column=0, columnspan=6,
+                                                                              sticky='w')
+        self._cond_dots = {}
+        for i, p in enumerate(['80m-40m', '30m-20m', '17m-15m', '12m-10m']):
+            r, c = 1 + i // 2, (i % 2) * 3
+            tk.Label(f, text=p.replace('m', '').replace('-', '-') + ' ', bg=BG, fg=FG,
+                     font=(UI, fs)).grid(row=r, column=c, sticky='e')
+            d = [tk.Label(f, text='\u25cf', bg=BG, fg=DIM, font=(UI, fs - 2)) for _ in range(2)]
+            d[0].grid(row=r, column=c + 1)
+            d[1].grid(row=r, column=c + 2, padx=(0, 8))
+            self._cond_dots[p] = d
+        self._cond_tip = Tip(f, 'HF band conditions (N0NBH / hamqsl.com), refreshed every 30 min when online. '
+                                'Green = good, yellow = fair, red = poor; left dot day, right dot night.')
+
+    def _show_cond(self, c):
+        for p, (dl, nl) in self._cond_dots.items():
+            day, night = c['bands'].get(p, ('', ''))
+            dl.config(fg=self.COND_COL.get(day.lower(), DIM))
+            nl.config(fg=self.COND_COL.get(night.lower(), DIM))
+        words = '  '.join(f"{p}: {d}/{n}" for p, (d, n) in c['bands'].items())
+        self._cond_tip.text = (f"HF band conditions (N0NBH), day/night:\n{words}\n"
+                               f"SFI {c['sfi']}  K {c['k']}  noise {c['noise']}  ({c['updated'].strip()})\n"
+                               'Green = good, yellow = fair, red = poor.')
+
     def set_cw_mode(self):
         try:
             m = self.eng.set_rig_mode()
@@ -828,7 +906,7 @@ class App:
 
     def _flash(self, txt):
         self.flash.config(text=txt.strip('<>'))
-        self.flash.place(relx=1.0, x=-150, y=4, anchor='ne')
+        self.flash.place(in_=self.spec, relx=1.0, x=-4, y=2, anchor='ne')
         self.flash.lift()
         if getattr(self, '_flash_job', None):
             self.root.after_cancel(self._flash_job)
@@ -877,6 +955,7 @@ class App:
                     rx.append(val)
                 elif kind == 'txchar':
                     txc.append(val)
+                    self.morse.tx(val, self.eng.tx.wpm)
                 elif kind in ('meter', 'spec', 'rig', 'skim'):
                     latest[kind] = val
                 else:
@@ -951,6 +1030,9 @@ class App:
                 f = self.freq
                 self.lbl_freq.config(text=f'{f // 1000000}.{(f // 1000) % 1000:03d}.{(f % 1000) // 10:02d}')
                 self.lbl_rig.config(text=f'{self.mode}  {Q.band_for(f)} | {self.rig.name}  [OK]')
+                b = Q.band_for(f)
+                if b in BAND_CW and self.root.focus_get() is not self.cb_band:
+                    self.v_band.set(b)
             else:
                 self.lbl_rig.config(text=f'CAT: {self.rig_err or "not connected"}')
         elif kind == 'alerts':
@@ -989,6 +1071,10 @@ class App:
                                   action='ask "QRQ?" and tick TURBO to speed both of you up'))
         elif kind == 'flash':
             self._flash(val)
+        elif kind == 'elem':
+            self.morse.rx(*val)
+        elif kind == 'bandcond':
+            self._show_cond(val)
         elif kind == 'lookup':
             self._apply_lookup(*val)
         elif kind == 'status':
@@ -1015,6 +1101,7 @@ class App:
                 if val:
                     self._eng_line(PL.translate(val, self.cfg['call']), 'me')
         elif kind == 'txdone':
+            self.morse.tx_done()
             self.txt.insert('end', '\n')
             t = self.tabs.get(self.tx_owner)
             if t and hasattr(t, 'on_txdone'):
@@ -1277,6 +1364,102 @@ PTT_CHOICES = [('VOX', 'None - radio break-in (CW) / VOX'), ('CAT', 'CAT command
                ('RTS', 'RTS line'), ('DTR', 'DTR line')]
 HS_CHOICES = [('Default', 'Default'), ('None', 'None'), ('Hardware', 'Hardware (RTS/CTS)'),
               ('XONXOFF', 'XON/XOFF')]
+
+
+class MorseStrip:
+    """Live dits and dahs where the ZBM2 startup flash shows: orange = receiving, red = we're sending.
+    RX elements come from the decoder as they're keyed; TX is played out at our sending speed."""
+    RXC, TXC = '#ff8c00', '#ff3c00'
+
+    def __init__(self, root, spec, compact):
+        self.root, self.spec = root, spec
+        self.W, self.H = (190, 22) if compact else (280, 30)
+        self.u = 4 if compact else 5                      # pixels per dit
+        self.c = tk.Canvas(spec, width=self.W, height=self.H, bg='#000000', highlightthickness=1,
+                           highlightbackground='#3a2600')
+        self.x = 6
+        self.last = 0.0
+        self.q, self.qjob, self.key_id = [], None, None
+        self.lamp = self.c.create_oval(4, self.H / 2 - 3, 10, self.H / 2 + 3, fill='', outline='')
+        self.x0 = 16
+        self.x = self.x0
+        self._idle()
+
+    def place(self):
+        self.c.place(in_=self.spec, relx=1.0, x=-4, y=2, anchor='ne')
+
+    # --- drawing ---
+    def _gap(self, units):
+        self.x += units * self.u
+
+    def _mark(self, dah, col):
+        import time as _t
+        self.last = _t.time()
+        w = (3 if dah else 1) * self.u
+        h = self.u
+        y0 = self.H / 2 - h / 2
+        if self.x + w > self.W - 4:                       # scroll left
+            dx = self.x + w - (self.W - 4)
+            for i in self.c.find_withtag('el'):
+                self.c.move(i, -dx, 0)
+                if self.c.coords(i)[2] < self.x0:
+                    self.c.delete(i)
+            self.x -= dx
+        if dah:
+            self.c.create_rectangle(self.x, y0, self.x + w, y0 + h, fill=col, outline='', tags='el')
+        else:
+            self.c.create_oval(self.x, y0, self.x + w, y0 + h, fill=col, outline='', tags='el')
+        self.x += w + self.u
+        self.c.itemconfig(self.lamp, fill=col)
+        self.root.after(120, lambda: self.c.itemconfig(self.lamp, fill=''))
+
+    def _idle(self):
+        import time as _t
+        if self.c.find_withtag('el') and _t.time() - self.last > 6 and not self.q:
+            self.c.delete('el')
+            self.x = self.x0
+        self.root.after(1000, self._idle)
+
+    # --- RX: one call per keyed element / space from the decoder ---
+    def rx(self, kind, ms, dit):
+        dit = dit or 60.0
+        if kind == 'mark':
+            self._mark(ms > 2.0 * dit, self.RXC)
+        elif ms > 5.0 * dit:
+            self._gap(4)
+        elif ms > 2.0 * dit:
+            self._gap(2)
+
+    # --- TX: tokens as the transmitter sends them, played at our speed ---
+    def tx(self, tok, wpm):
+        dit = 1.2 / max(5, wpm or 20)
+        if tok == ' ':
+            self.q.append(('gap', 4 * dit))
+        else:
+            code = code_for(tok) or ''
+            for el in code:
+                self.q.append(('dah' if el == '-' else 'dit', (3 if el == '-' else 1) * dit))
+                self.q.append(('egap', dit))
+            if code:
+                self.q.append(('gap', 2 * dit))
+        if self.qjob is None:
+            self._run()
+
+    def _run(self):
+        if not self.q:
+            self.qjob = None
+            return
+        kind, dur = self.q.pop(0)
+        if kind in ('dit', 'dah'):
+            self._mark(kind == 'dah', self.TXC)
+        elif kind == 'gap':
+            self._gap(2)
+        self.qjob = self.root.after(max(1, int(dur * 1000)), self._run)
+
+    def tx_done(self):
+        if self.qjob is not None and len(self.q) < 6:      # let the last letter finish drawing
+            return
+        self.q.clear()
 
 
 def _lbl(choices, val):
@@ -1793,6 +1976,9 @@ QUICK_START = [
         'The NEXT box writes your reply for you. F1 sends it at their speed (Match their speed).',
         'F2 CQ   F3 answer   F4 report   F5 73   F6 AGN?   F7 QRS (slower)   F8 your call.',
         'No F-keys (uConsole, small keyboards)? Ctrl+1 ... Ctrl+8 do the same as F1 ... F8.',
+        'BAND list next to the frequency changes band by CAT (back to where you were on it). TUNE starts the\n'
+        "    radio's antenna tuner. BANDS dots: green good, yellow fair, red poor (day / night).",
+        'The dits and dahs over the spectrum: orange = what you are hearing, red = what you are sending.',
         'Esc stops sending. LOG (Ctrl+L) saves the QSO; NEW (Ctrl+N) starts the next one.',
         'Nothing transmits until you press a key. The License guard checkbox (top right) keeps you inside your\n'
         '    class\'s CW segments; untick it only if you know your privileges (a red GUARD OFF shows).',

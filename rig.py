@@ -317,9 +317,16 @@ class Transmitter:
             try:
                 t = np.arange(int(48000 * seconds)) / 48000
                 env = np.minimum(1, np.minimum(t, t[::-1]) / 0.005)
-                self._ptt(True)
-                time.sleep(self.cfg.get('ptt_lead_ms', 100) / 1000)
-                self._play((self._drive() * env * np.sin(2 * np.pi * self.tone * t)).astype(np.float32))
+                if self.cfg.get('key_method') == 'serial':      # hold the key line: carrier for the ATU
+                    self._key_on()
+                    port, line = get_port(self.cfg['key_port']), self.cfg.get('key_line', 'DTR')
+                    port.set(line, True)
+                    _sleep_until(time.perf_counter() + seconds, self.abort)
+                    port.set(line, False)
+                else:
+                    self._ptt(True)
+                    time.sleep(self.cfg.get('ptt_lead_ms', 100) / 1000)
+                    self._play((self._drive() * env * np.sin(2 * np.pi * self.tone * t)).astype(np.float32))
             except Exception as e:
                 if self.on_char:
                     self.on_char(f' [TUNE ERROR: {e}] ')

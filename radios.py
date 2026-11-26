@@ -1,6 +1,7 @@
 """Per-radio presets for the Setup Wizard: Hamlib model, CAT speed, how CW is keyed, which sound card,
 and a one-paragraph hookup note. Each entry builds on a connection profile from app.PROFILES.
 
+tuner:      raw CAT that starts the antenna tuner (else Hamlib 'G TUNE'; else a carrier for an autotuner)
 key_method: rigkeyer = the radio's own keyer sends CW from text (Yaesu/Elecraft KY, Icom CI-V 0x17)
             serial   = we key a COM-port line (DTR) like a straight key; radio's break-in does T/R
             audio    = we send a clean CW tone into the radio in USB / DATA mode (DigiRig style)
@@ -10,13 +11,14 @@ RADIOS = {
     'Yaesu FTX-1': dict(
         profile='usbrig', rig_model=1051, cat_baud=38400, key_method='serial', key_line='DTR',
         ptt_method='VOX', min_hamlib='4.7', audio_hint=['FTX', 'USB Audio CODEC'], key_port_hint='Standard',
+        tuner='W AC103; 0',
         note='One USB cable. CAT on the "Enhanced" COM port; CW keying on the "Standard" COM port. '
              'Radio menu: PC KEYING / RPTT SELECT = DTR, and semi break-in ON. Needs Hamlib 4.7 or newer '
              '(Rig Setup > Update Hamlib).'),
     'Yaesu FT-891': dict(
         profile='usbrig', rig_model=1036, cat_baud=4800, key_method='serial', key_line='DTR',
         ptt_method='VOX', audio_hint=['USB PnP Sound', 'USB Audio Device'], digirig_audio=True,
-        key_port_hint='Standard',
+        key_port_hint='Standard', tuner='W AC002; 0',
         note='Radio USB = CAT ("Enhanced" COM port) + CW keying ("Standard" COM port: CW menu PC KEYING = DTR, '
              'break-in ON). The FT-891 has no USB sound card, so receive audio comes from a DigiRig (or '
              'SignaLink) on the DATA jack. CAT RATE in the menu must match the speed here.'),
@@ -28,7 +30,7 @@ RADIOS = {
         profile='digirig_hf', rig_model=1020, cat_baud=4800,
         note='DigiRig to the ACC (CAT) and DATA jacks. Radio in USB or DIG mode for tone CW.'),
     'Yaesu FT-991A': dict(
-        profile='usbrig', rig_model=1035, cat_baud=38400,
+        profile='usbrig', rig_model=1035, cat_baud=38400, tuner='W AC002; 0',
         note='One USB cable (CAT on the "Enhanced" port, USB Audio CODEC for sound). CW is sent by the '
              "radio's keyer; turn break-in ON."),
     'Elecraft KX3': dict(

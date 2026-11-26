@@ -18,6 +18,10 @@ import online as ON
 import qso as Q
 import plain as PL
 import rigcontrol as RC
+
+# common CW spots per band (most are inside the Technician/General CW segments where they exist)
+BAND_CW = {'160M': 1820000, '80M': 3550000, '40M': 7040000, '30M': 10115000, '20M': 14040000,
+           '17M': 18080000, '15M': 21060000, '12M': 24900000, '10M': 28060000, '6M': 50090000}
 from alerts import CopyMonitor
 from chat import ChatRoom
 from decoder import CWDecoder
@@ -122,6 +126,7 @@ class Engine:
             self._threads = True
             threading.Thread(target=self._dsp_loop, daemon=True).start()
             threading.Thread(target=self._rig_loop, daemon=True).start()
+            threading.Thread(target=self._cond_loop, daemon=True).start()
         self.start_audio()
         threading.Timer(1.2, lambda: self.earcons.play('startup')).start()
 
@@ -404,6 +409,9 @@ class Engine:
 
     def _on_element(self, kind, ms, level):
         self.rx_grader.element(kind, ms, level)
+        d = self.decoder
+        if d is not None and not self.tx.busy.is_set() and (d.locked or (d.sn or 0) >= 6):
+            self.emit('elem', (kind, ms, d.dit))           # live dit/dah strip (orange = RX)
         if self.element_sink:
             self.element_sink(kind, ms, level)
 
@@ -446,6 +454,63 @@ class Engine:
             self.gt.status(self.freq, self.cfg['call'], self.cfg['grid'][:4] if self.cfg['grid'] else '',
                            self.qso.call, self.qso.grid, self.tx.busy.is_set(), self.cfg['tone'])
             time.sleep(1.0)
+
+    # ---- band conditions (N0NBH / hamqsl.com), every 30 min when online ----
+    def _cond_loop(self):
+        import bandcond
+        while True:
+            try:
+                self.emit('bandcond', bandcond.fetch())
+                time.sleep(1800)
+            except Exception:
+                time.sleep(300)
+
+    # ---- quick band change + antenna tuner (CAT) ----
+    def qsy_band(self, band):
+        """Jump to a band: back to where you were last on it, else a common CW spot. -> Hz"""
+        mem = self.cfg.setdefault('band_mem', {})
+        cur = Q.band_for(self.freq)
+        if cur and self.freq:
+            mem[cur] = int(self.freq)
+        hz = int(mem.get(band) or BAND_CW[band])
+        if type(self.rig) is RC.NoRig:
+            raise RuntimeError('no CAT connection')
+        if not self.rig.set_freq(hz):
+            raise RuntimeError(f'radio refused {hz / 1e6:.3f} MHz')
+        self.freq = hz
+        return hz
+
+    def tune_antenna(self):
+        """Start the radio's tuner (internal or external ATU) by CAT. -> (ok, message)"""
+        if self.tx.busy.is_set():
+            return False, 'busy transmitting'
+        ok, why = self.check_tx()
+        if not ok:
+            return False, why
+        rig = self.rig
+        if not hasattr(rig, 'cmd'):
+            return False, 'no CAT tuner command (needs Hamlib CAT)'
+        from radios import RADIOS
+        preset = RADIOS.get(self.cfg.get('radio', ''), {}).get('tuner')
+        for c in ([preset] if preset else []) + ['G TUNE']:
+            try:
+                if rig.cmd(c)[1] == 0:
+                    return True, 'Tuning...'
+            except Exception:
+                pass
+        return False, 'no CAT tuner'
+
+    def tune_carrier(self, seconds=5):
+        """Key a steady carrier so an automatic tuner (LDG etc.) can tune. -> (ok, message)"""
+        if self.tx.busy.is_set():
+            return False, 'busy transmitting'
+        ok, why = self.check_tx()
+        if not ok:
+            return False, why
+        if self.cfg['key_method'] == 'rigkeyer':
+            return False, "radio keyer can't send a carrier - use the radio's TUNE"
+        self.tx.tune(seconds)
+        return True, f'Carrier {seconds} s'
 
     def set_rig_mode(self):
         if self.cfg['key_method'] == 'audio':
