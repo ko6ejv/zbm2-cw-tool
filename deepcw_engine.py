@@ -261,6 +261,7 @@ class PosteriorStitcher:
         self.previous_symbol = "none"
         self.blank_frames = 0
         self.has_committed_text = False
+        self.last_committed = []
 
     @property
     def context_start_frame(self) -> int:
@@ -325,6 +326,7 @@ class PosteriorStitcher:
                 committed_count = index + 1
 
         committed: LaneText | None = None
+        self.last_committed = spans[:committed_count]          # ZBM2: char timing for the speed meter
         if committed_count > 0:
             committed = to_lane_text(spans[:committed_count], starts_word)
             self.has_committed_text = True

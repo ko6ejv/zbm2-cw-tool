@@ -16,6 +16,8 @@ import os
 
 import numpy as np
 
+from morse import MORSE
+
 from deepcw_engine import PosteriorStitcher, normalize_spectrogram
 
 _HERE = getattr(__import__('sys'), '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))  # bundled .exe
@@ -77,6 +79,10 @@ class DeepCW:
 
     def reset(self):
         self.st = PosteriorStitcher(self.meta)
+        self._prev = None                # (char, end frame) of the last committed character
+        self._dits = []                  # recent dit-length estimates (s) from character timing
+        self.wpm = None                  # their speed, from the decoded characters themselves
+        self.snr_db = None
         self.audio = np.zeros(0, dtype=np.float32)
         self.off = 0                     # absolute 3200 Hz sample index of audio[0]
         self.end = 0                     # absolute samples received
@@ -165,11 +171,38 @@ class DeepCW:
             cut = keep_from - self.off
             self.audio = self.audio[cut:]
             self.off += cut
+        self._time_chars(self.st.last_committed)
         if committed is None or not committed.text:
             return ''
         text = (' ' if committed.prepend_space and self.transcript else '') + committed.text
         self.transcript = (self.transcript + text)[-2000:]
         return text
+
+    # ---------- their speed, from when each character ends ----------
+    FRAME_S = None
+
+    def _time_chars(self, spans):
+        """Inside a word, one character ends (3 + its own length) dits after the one before it.
+        Every pair of letters is a speed measurement; the median of the recent ones is their WPM."""
+        fs = self.st.hop_length / self.sr
+        for sp in spans:
+            if sp.char.isspace():
+                self._prev = None
+                continue
+            code = MORSE.get(sp.char)
+            if self._prev is not None and code:
+                units = 3 + sum(1 if e == '.' else 3 for e in code) + (len(code) - 1)
+                dt = (sp.end_frame - self._prev[1]) * fs
+                dit = dt / units
+                if 0.02 <= dit <= 0.2:                      # 6 .. 60 WPM
+                    self._dits = (self._dits + [dit])[-40:]
+            self._prev = (sp.char, sp.end_frame)
+        if len(self._dits) >= 5:
+            r = np.asarray(self._dits[-16:])
+            med = float(np.median(r))
+            spread = float(np.median(np.abs(r - med))) / med     # garbled copy -> letters disagree
+            if spread < 0.15:
+                self.wpm = 1.2 / med
 
     def _step(self, end_sample, final):
         return self._run(self.st.window_start_frame(end_sample), end_sample, final)

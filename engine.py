@@ -233,6 +233,8 @@ class Engine:
                 import sys as _sys
                 _sys.excepthook(*_sys.exc_info())
                 self.deep = None
+        if self.deep is not None:
+            self.soft = None                 # the neural decoder does text + speed; skip the soft decoder
         self._their_wpm = None
         self.skimmer = Skimmer(fs_in=fs)
         self.rec.set_rate(fs, self.cfg.get('rec_seconds', 120))
@@ -327,7 +329,12 @@ class Engine:
                     if jump:
                         d.reset_timing()
             out = ''.join(d.process(x))
-            if self.soft is not None and self.comb is not None:
+            if self.deep is not None:
+                # neural decoder prints the text AND measures their speed from its own letter timing;
+                # the soft decoder isn't run at all (CPU on the uConsole)
+                txt = ''
+                self._soft_feed((x, d.tone, None))
+            elif self.soft is not None and self.comb is not None:
                 t_s = d.t / 1000.0
                 self.comb.update_mode(d.sn, t_s, self.soft._open)
                 txt = self.comb.fast(out, t_s)
@@ -366,6 +373,7 @@ class Engine:
                     try:
                         with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'zbm2cw_speed.log'), 'a') as f:
                             f.write(f"{time.strftime('%H:%M:%S')} tone={d.tone:.0f} fast={d.wpm:.1f} lock={d.locked} "
+                                    f"deep={getattr(self.deep, 'wpm', None)} "
                                     f"sn={d.sn} soft_open={getattr(s, '_open', None)} "
                                     f"soft_wpm={1200.0 / s.dit_ms if s else 0:.1f} src={getattr(s, 'speed_src', '')} "
                                     f"their={self._their_wpm} tx={self.tx_wpm()}\n")
@@ -421,7 +429,8 @@ class Engine:
     def _on_element(self, kind, ms, level):
         self.rx_grader.element(kind, ms, level)
         d = self.decoder
-        if d is not None and not self.tx.busy.is_set() and (d.locked or (d.sn or 0) >= 6):
+        if (d is not None and self.deep is None and not self.tx.busy.is_set()
+                and (d.locked or (d.sn or 0) >= 6)):
             self.emit('elem', (kind, ms, d.dit))           # live dit/dah strip (orange = RX)
         if self.element_sink:
             self.element_sink(kind, ms, level)
@@ -562,8 +571,8 @@ class Engine:
             try:
                 if deep is not None:
                     txt = deep.process(x, tone=tone)
-                    if soft is not None:
-                        soft.process(x, tone=tone, hint_dit_ms=hint)     # speed meter only
+                    if txt:
+                        self.emit('rxtext', (txt, deep.wpm or self._their_wpm or 20))   # dit/dah strip
                 else:
                     txt = comb.soft(soft.process(x, tone=tone, hint_dit_ms=hint))
             except Exception:
@@ -577,7 +586,11 @@ class Engine:
         """A steady 'their speed': only from a decoder that's actually copying text, smoothed,
         and held (not reset) through pauses - so it doesn't jump around on noise."""
         w = None
-        if self.soft is not None and self.soft._open:
+        if self.deep is not None:
+            w = self.deep.wpm                    # from the neural decoder's letter timing
+            if w is None and d.sn is not None and d.sn >= 6 and d.locked:
+                w = d.wpm                        # strong signal, before enough letters are in
+        elif self.soft is not None and self.soft._open:
             w = 1200.0 / self.soft.dit_ms
         elif d.sn is not None and d.sn >= 3 and d.locked:
             w = d.wpm

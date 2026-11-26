@@ -252,3 +252,20 @@ def test_bandcond_parse():
          '<band name="80m-40m" time="night">Good</band>')
     r = bandcond.parse(x)
     assert r['bands']['80m-40m'] == ('Fair', 'Good') and r['sfi'] == '87' and r['k'] == '1'
+
+
+def test_deepcw_measures_their_speed():
+    deepcw = pytest.importorskip('deepcw')
+    if not deepcw.available():
+        pytest.skip('onnxruntime not installed')
+    from rig import tone_waveform
+    rng = np.random.default_rng(1)
+    for wpm in (15, 25, 35):
+        s = tone_waveform('CQ CQ DE W1AW W1AW K KO6EJV DE W1AW GM UR RST 579 NAME JOHN QTH CT HW? KN',
+                          wpm, 48000, 700, amp=1.0)
+        x = np.concatenate([np.zeros(48000), s, np.zeros(96000)])
+        x = (0.1 * x + 0.1 * rng.normal(0, 1.0, len(x))).astype(np.float32)
+        d = deepcw.DeepCW(48000)
+        for i in range(0, len(x), 1024):
+            d.process(x[i:i + 1024], tone=700)
+        assert d.wpm is not None and abs(d.wpm - wpm) < 0.08 * wpm, (wpm, d.wpm)

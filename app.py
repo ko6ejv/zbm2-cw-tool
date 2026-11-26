@@ -1152,6 +1152,8 @@ class App:
             self._flash(val)
         elif kind == 'elem':
             self.morse.rx(*val)
+        elif kind == 'rxtext':
+            self.morse.rx_text(*val)
         elif kind == 'bandcond':
             self._show_cond(val)
         elif kind == 'lookup':
@@ -1543,29 +1545,37 @@ class MorseStrip:
             self._gap(2)
 
     # --- TX: tokens as the transmitter sends them, played at our speed ---
-    def tx(self, tok, wpm):
+    def tx(self, tok, wpm, col=None):
         dit = 1.2 / max(5, wpm or 20)
+        col = col or self.TXC
         if tok == ' ':
-            self.q.append(('gap', 4 * dit, ''))
+            self.q.append(('gap', 4 * dit, '', col))
         else:
             code = code_for(tok) or ''
             for el in code:
-                self.q.append(('dah' if el == '-' else 'dit', (3 if el == '-' else 1) * dit, ''))
-                self.q.append(('egap', dit, ''))
+                self.q.append(('dah' if el == '-' else 'dit', (3 if el == '-' else 1) * dit, '', col))
+                self.q.append(('egap', dit, '', col))
             if code:
-                self.q.append(('let', 2 * dit, tok))
+                self.q.append(('let', 2 * dit, tok, col))
         if self.qjob is None:
             self._run()
+
+    # --- RX from the neural decoder: its letters, drawn as dits/dahs at their speed ---
+    def rx_text(self, text, wpm):
+        if len(self.q) > 120:                              # never fall far behind the copy
+            self.q = [e for e in self.q if e[3] != self.RXC]
+        for ch in text:
+            self.tx(' ' if ch == ' ' else ch, wpm, self.RXC)
 
     def _run(self):
         if not self.q:
             self.qjob = None
             return
-        kind, dur, tok = self.q.pop(0)
+        kind, dur, tok, col = self.q.pop(0)
         if kind in ('dit', 'dah'):
-            if self.pend and self.pend_col != self.TXC:
+            if self.pend and self.pend_col != col:
                 self._letter()
-            self._mark(kind == 'dah', self.TXC)
+            self._mark(kind == 'dah', col)
         elif kind == 'let':
             self._letter(tok)
             self.x += 2 * self.u
