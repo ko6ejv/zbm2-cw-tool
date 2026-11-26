@@ -105,6 +105,7 @@ It installs everything (Python, the neural decoder, Hamlib, serial-port access) 
 | Elecraft KX3 | KXUSB / DigiRig serial to ACC1 (#2045, CONFIG RS232) | PHONES to a USB sound card / DigiRig | Radio's keyer (KY), break-in on |
 | Xiegu G90 | DE-19 or DigiRig to ACC (#3088, 19200) | Same cable | Clean CW tone, radio in USB |
 | (tr)uSDX (DL2MAN) | DigiRig (tr)uSDX cable or the radio's USB-C (#2055, 115200) | DigiRig, or the trusdx-audio driver | Clean CW tone, radio in USB, PTT by CAT |
+| HF Signals zBitx v2 | Radio USB in CAT mode (IC-746 compatible, #3023, 19200) | Radio's USB sound card ("Source/Sink"), front panel in DIGI | Clean CW tone, PTT by CAT |
 | Xiegu X6100 | One USB-C cable (#3087, 19200) | Radio's USB sound card | Clean CW tone in U-DIG, PTT by CAT |
 | Xiegu X6200 | One USB-C cable (#3091, 19200) | Radio's USB sound card | Clean CW tone in U-DIG, PTT by CAT |
 | Xiegu G7250 | Not in Hamlib yet - starts as the X6200 (CI-V); **Update Hamlib** when it's added | Radio's USB sound card | Clean CW tone, PTT by CAT |

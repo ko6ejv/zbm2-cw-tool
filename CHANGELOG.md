@@ -1,3 +1,7 @@
+## ZBM2 CW Tool 3.5.3
+
+- zBitx v2 preset: IC-746 CAT (#3023, 19200), tone keying in DIGI, CAT PTT.
+
 ## ZBM2 CW Tool 3.5.2
 
 - (tr)uSDX preset: Hamlib #2055, 115200, tone keying in USB, CAT PTT, RTS off.

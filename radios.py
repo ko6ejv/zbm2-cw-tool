@@ -66,6 +66,13 @@ RADIOS = {
              'CAT speed). Put the radio in USB: CW goes out as a clean tone, PTT by CAT (the DigiRig RTS line '
              'is not used). No DigiRig? The radio\'s own USB-C port does CAT, with audio from the "trusdx-audio" '
              'driver. Practice without RF: menu 3.3 TX Drive = 0 (display shows P instead of T).'),
+    'HF Signals zBitx v2': dict(
+        profile='usbrig', rig_model=3023, cat_baud=19200, key_method='audio', ptt_method='CAT',
+        hamlib_ptt='RIG', audio_hint=['Source/Sink', 'zBitx'],
+        note='One USB cable: on the radio, Menu > USB and set USB_Mode to CAT (not MOUSE), and put the '
+             'front panel in DIGI. The PC sees a COM port (Icom IC-746 compatible, CI-V address 56) and a '
+             '"Source/Sink" sound card. CW goes out as a clean tone in DIGI, PTT by CAT. Use a data-only USB '
+             'cable (or a power blocker) so the PC does not power the radio.'),
     'Icom IC-7300': dict(
         profile='usbrig', rig_model=3073, cat_baud=115200, key_method='rigkeyer',
         audio_hint=['USB Audio CODEC'],

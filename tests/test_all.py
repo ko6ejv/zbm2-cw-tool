@@ -309,3 +309,12 @@ def test_trusdx_preset():
     assert r and cfg['rig_model'] == 2055 and cfg['cat_baud'] == 115200
     assert cfg['key_method'] == 'audio' and cfg['ptt_method'] == 'CAT' and cfg['hamlib_ptt'] == 'RIG'
     assert cfg['cat_rts'] == 'OFF' and cfg['profile'] == 'digirig_hf'
+
+
+def test_zbitx_preset():
+    import radios
+    from config import DEFAULTS
+    cfg = dict(DEFAULTS)
+    r = radios.apply_radio(cfg, 'HF Signals zBitx v2', lambda c, k: c.__setitem__('profile', k))
+    assert r and cfg['rig_model'] == 3023 and cfg['cat_baud'] == 19200
+    assert cfg['key_method'] == 'audio' and cfg['ptt_method'] == 'CAT' and cfg['hamlib_ptt'] == 'RIG'
