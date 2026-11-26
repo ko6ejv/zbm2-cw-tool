@@ -502,9 +502,22 @@ class SoftCW:
             r = self._search()
             if r:
                 wpm = r[1]
-                if self.speed_src != 'search' or abs(1200.0 / wpm - self.dit_ms) > 0.3 * self.dit_ms:
-                    self.dit_ms = 1200.0 / wpm
-                self.speed_src = 'search'
+                new = 1200.0 / wpm
+                big = abs(new - self.dit_ms) > 0.3 * self.dit_ms
+                # Same station after a pause: a search over mostly band noise likes the fastest speed
+                # (live 2026-11-26: a 25 WPM op read as 46). A big jump right after good copy must be
+                # found by two searches in a row before it's believed.
+                recent = self.speed_src != 'default' and self._clock - self._good_t < 30.0
+                if big and recent:
+                    prev = getattr(self, '_jump_cand', None)
+                    self._jump_cand = wpm
+                    if prev != wpm:
+                        r = None
+                if r:
+                    self._jump_cand = None
+                    if self.speed_src != 'search' or big:
+                        self.dit_ms = new
+                    self.speed_src = 'search'
         # main detector: window ~0.65 dit
         win_ms = min(max(0.65 * self.dit_ms, 12.0), 55.0)
         win = int(self.fs * win_ms / 1000)

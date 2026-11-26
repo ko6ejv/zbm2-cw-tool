@@ -360,6 +360,17 @@ class Engine:
                 if sn is None and self.soft is not None and self.soft._open:
                     sn = self.soft.snr_db - 12.0          # soft decoder copying a weak one
                 self.emit('meter', (sn, self._their_wpm or 0, self._their_wpm is not None, d.tone, d.key))
+                if self.cfg.get('debug_speed') and now - getattr(self, '_spd_t', 0) > 1.0:
+                    self._spd_t = now
+                    s = self.soft
+                    try:
+                        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'zbm2cw_speed.log'), 'a') as f:
+                            f.write(f"{time.strftime('%H:%M:%S')} tone={d.tone:.0f} fast={d.wpm:.1f} lock={d.locked} "
+                                    f"sn={d.sn} soft_open={getattr(s, '_open', None)} "
+                                    f"soft_wpm={1200.0 / s.dit_ms if s else 0:.1f} src={getattr(s, 'speed_src', '')} "
+                                    f"their={self._their_wpm} tx={self.tx_wpm()}\n")
+                    except Exception:
+                        pass
 
     def _on_rx(self, text):
         self.emit('rx', text)
@@ -567,13 +578,21 @@ class Engine:
             w = d.wpm
         if w is None:
             return
-        if self._their_wpm is None or abs(w - self._their_wpm) > 0.35 * self._their_wpm:
-            self._wpm_jump = getattr(self, '_wpm_jump', 0) + 1
-            if self._their_wpm is None or self._wpm_jump >= 25:    # a real speed change persists
-                self._their_wpm, self._wpm_jump = w, 0
+        now = getattr(d, 't', 0.0) / 1000.0                    # decoder clock, seconds
+        if self._their_wpm is None:
+            self._their_wpm, self._wpm_jump_t = w, None
             return
-        self._wpm_jump = 0
-        self._their_wpm += 0.05 * (w - self._their_wpm)
+        if abs(w - self._their_wpm) > 0.25 * self._their_wpm:
+            # a new speed must hold for 6 s before it's shown (live 2026-11-26: 25 WPM jumped to 46 at
+            # the start of every over, from one bad speed search, and TX went out at 35)
+            j = getattr(self, '_wpm_jump_t', None)
+            if j is None or abs(w - j[1]) > 0.2 * j[1]:
+                self._wpm_jump_t = (now, w)
+            elif now - j[0] >= 6.0:
+                self._their_wpm, self._wpm_jump_t = w, None
+            return
+        self._wpm_jump_t = None
+        self._their_wpm += 0.02 * (w - self._their_wpm)
 
     def tx_wpm(self):
         c = self.cfg

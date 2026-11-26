@@ -1,3 +1,8 @@
+## ZBM2 CW Tool 3.4.5
+
+- THEIR SPEED: big changes must hold 6 s; post-pause speed jumps need two agreeing searches (25 WPM was read as 46).
+- Optional speed trace (`debug_speed` in config.json -> zbm2cw_speed.log).
+
 ## ZBM2 CW Tool 3.4.4
 
 - TUNE: find the radio's tuner command by Hamlib model for configs made before radio presets.
