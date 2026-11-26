@@ -166,6 +166,12 @@ class App:
         ttk.Button(stats, text='Set rig mode', command=self.set_cw_mode).grid(row=2, column=1, padx=2, pady=2)
         ttk.Button(stats, text='Rig Setup', command=self.open_settings).grid(row=2, column=2, padx=2, pady=2)
         ttk.Button(stats, text='HELP', command=lambda: HelpWindow(self.root)).grid(row=2, column=3, padx=2, pady=2)
+        self.cfg['emergency'] = False                  # never carried over from a previous run
+        self.btn_emerg = ttk.Button(stats, text='EMERGENCY', style='Stop.TButton', command=self._toggle_emergency)
+        self.btn_emerg.grid(row=2, column=4, padx=2, pady=2)
+        Tip(self.btn_emerg, 'Emergency mode: lifts the callsign and license-guard blocks so anyone can send for '
+                            'help (FCC 97.403 / 97.405 - immediate safety of life or property, when normal '
+                            'communication is not available). Off again with one click, and on every restart.')
         tframe = tk.Frame(hdr, bg=BG)
         tframe.pack(side='left', padx=10, fill='x', expand=True)
         tk.Label(tframe, text=' ZBM2 CW TOOL ', bg=ACC, fg=BG, font=(PIX, -18 if C else -32)).pack(
@@ -505,6 +511,12 @@ class App:
     def tx_wpm(self):
         return self.eng.tx_wpm()
 
+    def _toggle_emergency(self):
+        """Emergency mode (FCC 97.403 / 97.405): lifts the callsign and license-guard blocks. Nothing else."""
+        on = not self.cfg.get('emergency')
+        self.cfg['emergency'] = on
+        self.btn_emerg.config(text='EMERGENCY ON' if on else 'EMERGENCY')
+
     def _guard_toggled(self, save=True):
         on = self.v_guard.get()
         self.cfg['license_guard'] = on
@@ -544,6 +556,7 @@ class App:
         self.send(Q.macro(kind, self.cfg, self.qso, self._rst_out()))
 
     def _send_free(self, keep_over=False):
+        keep_over = keep_over or (self.cfg.get('emergency') and not self.cfg.get('call'))   # no DE <blank> endings
         full, code = self.ender.finish(self.v_free.get(), self.qso.call, keep_over)
         if full:
             self.send(full)
@@ -1699,6 +1712,7 @@ class SettingsDialog:
 
     def _tune(self):
         c = self._collect()
+        c['emergency'] = self.app.cfg.get('emergency', False)   # this dialog doesn't own it
         self.app.cfg.update(c)
         self.app._apply_tx_backend()
         self.app.tx.tone = self.app.v_tone.get()
@@ -1959,8 +1973,21 @@ class SetupWizard:
                    18, Q.LICENSE_CLASSES)
         self.p('Don\'t know your grid square? Look up your callsign on qrz.com - it\'s listed on your page. '
                'It\'s just a short code for where you are on the map.')
+        ttk.Button(self.body, text='EMERGENCY - I have no callsign', style='Stop.TButton',
+                   command=self._emergency).pack(anchor='w', pady=(14, 0))
+        self.p('For the immediate safety of life or property (FCC 97.403 / 97.405): skips the callsign '
+               'and goes straight to connecting the radio.', DIM)
+
+    def _emergency(self):
+        if not self.app.cfg.get('emergency'):
+            self.app._toggle_emergency()
+        if self.app.cfg.get('emergency'):
+            self.c['emergency'] = True
+            self.next()
 
     def check0(self):
+        if self.app.cfg.get('emergency') and not self.c.get('call'):
+            return None                                # emergency: no callsign needed
         if not re.fullmatch(r'(?:[A-Z0-9]{1,4}/)?[A-Z0-9]{1,3}\d[A-Z]{1,4}(?:/[A-Z0-9]{1,4})?', self.c['call']):
             return 'That callsign doesn\'t look right. Example: KO6EJV'
         if self.c['grid'] and not re.fullmatch(r'[A-R]{2}\d{2}(?:[A-X]{2})?', self.c['grid']):
@@ -2276,6 +2303,7 @@ class SetupWizard:
 
     def finish(self):
         self.c['setup_done'] = True
+        self.c['emergency'] = self.app.cfg.get('emergency', False)
         self.app.cfg.update(self.c)
         save_cfg(self.app.cfg)
         self.app._apply_tx_backend()

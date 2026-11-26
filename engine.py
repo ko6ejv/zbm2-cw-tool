@@ -512,6 +512,8 @@ class Engine:
 
     def check_tx(self):
         """License guard. -> (ok, why)"""
+        if self.cfg.get('emergency'):          # 97.403 / 97.405: any means, for immediate safety of life
+            return True, ''
         if not self.sim and not str(self.cfg.get('call', '')).strip():
             why = 'Set your callsign first (Setup Wizard) - nothing goes on the air without it.'
             self.emit('blocked', why)

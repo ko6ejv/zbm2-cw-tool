@@ -3,7 +3,7 @@ import json
 import os
 import sys
 
-__version__ = '3.2.2'
+__version__ = '3.3.0'
 
 HERE = os.path.dirname(os.path.abspath(sys.argv[0]))
 if getattr(sys, 'frozen', False):          # installed .exe: Program Files is read-only -> per-user folder
@@ -102,6 +102,7 @@ def load_cfg():
 
 def save_cfg(cfg):
     out = dict(cfg)
+    out.pop('emergency', None)              # emergency mode is never saved: off on every start
     kr = _keyring()
     for k in SECRET_KEYS:
         v = cfg.get(k, '')
