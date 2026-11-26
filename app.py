@@ -1795,7 +1795,8 @@ class SetupWizard:
         w = self.w = tk.Toplevel(app.root)
         w.title('Setup Wizard - ZBM2 CW Tool')
         w.configure(bg=BG)
-        w.geometry('840x720')
+        sw, sh = w.winfo_screenwidth(), w.winfo_screenheight()
+        w.geometry(f'{min(840, sw)}x{min(720, sh - 70)}+{max(0, (sw - 840) // 2)}+0')
         w.transient(app.root)
         w.grab_set()
         top = tk.Frame(w, bg=BG)
@@ -1831,6 +1832,8 @@ class SetupWizard:
                  wraplength=700).pack(anchor='w', pady=(2, 6))
 
     def field(self, key, label, hint='', width=20, values=None):
+        if getattr(self.app, 'compact', False):
+            width = min(width, 26)           # leave room for the hint on small screens
         r = tk.Frame(self.body, bg=BG)
         r.pack(fill='x', pady=4)
         tk.Label(r, text=label, bg=BG, fg=FG, width=22, anchor='w', font=(UI, -16)).pack(side='left')
@@ -1944,9 +1947,20 @@ class SetupWizard:
 
     # ---------- step 1: gear ----------
     def step1(self):
-        self.h1('What radio setup do you have?')
-        self.p('Pick the one that sounds most like yours. You can change it later.', FG, 11)
+        import radios as RAD
+        self.h1('What radio do you have?')
+        r = tk.Frame(self.body, bg=BG)
+        r.pack(fill='x', pady=(0, 6))
+        tk.Label(r, text='Your radio', bg=BG, fg=FG, width=22, anchor='w', font=(UI, -16)).pack(side='left')
+        self.v_radio = getattr(self, 'v_radio', tk.StringVar(value=self.c.get('radio') or RAD.OTHER))
+        cbr = ttk.Combobox(r, textvariable=self.v_radio, values=list(RAD.RADIOS) + [RAD.OTHER], width=28,
+                           state='readonly')
+        cbr.pack(side='left')
         self.v_prof = getattr(self, 'v_prof', tk.StringVar(value=self.c.get('profile') or 'usbrig'))
+        cbr.bind('<<ComboboxSelected>>', lambda e: self.v_prof.set(
+            RAD.RADIOS.get(self.v_radio.get(), {}).get('profile', self.v_prof.get())))
+        self.p('Listed radios get their settings filled in for you. Not listed? Pick "Other" and the '
+               'connection type below that sounds most like yours. You can change it later.', FG, 11)
         for key, pr in PROFILES.items():
             f = tk.Frame(self.body, bg=PANEL)
             f.pack(fill='x', pady=4)
@@ -1957,8 +1971,27 @@ class SetupWizard:
                      font=(UI, -16)).pack(anchor='w', padx=34, pady=(0, 6))
 
     def check1(self):
+        import radios as RAD
         key = self.v_prof.get()
-        if self.c.get('profile') != key:
+        rad = self.v_radio.get() if hasattr(self, 'v_radio') else RAD.OTHER
+        if rad in RAD.RADIOS and (self.c.get('radio') != rad or self.c.get('profile') != key):
+            r = RAD.apply_radio(self.c, rad, apply_profile)
+            if r.get('profile') != key:              # user overrode the connection type
+                apply_profile(self.c, key)
+            hint = r.get('audio_hint')
+            if r.get('digirig_audio'):
+                hint = RC.find_digirig()[1] or hint
+            if hint:
+                i, o = find_dev_like(hint, 'input'), find_dev_like(hint, 'output')
+                if i:
+                    self.c['audio_in'] = i
+                if o:
+                    self.c['audio_out'] = o
+            for k in list(self.v):
+                if k not in ('call', 'name', 'qth', 'grid'):
+                    del self.v[k]
+        elif self.c.get('profile') != key or (rad == RAD.OTHER and self.c.get('radio')):
+            self.c['radio'] = ''
             apply_profile(self.c, key)
             for k in list(self.v):            # re-read fields from new profile values
                 if k not in ('call', 'name', 'qth', 'grid'):
@@ -1966,8 +1999,21 @@ class SetupWizard:
 
     # ---------- step 2: connect ----------
     def step2(self):
+        import radios as RAD
+        import hamlibupd
         prof = self.c.get('profile')
         self.h1('Plug everything in')
+        rad = RAD.RADIOS.get(self.c.get('radio') or '')
+        if rad:
+            self.p(f'{self.c["radio"]}: ' + rad['note'], ACC, 11)
+            need = rad.get('min_hamlib')
+            have = hamlibupd.installed_version(RC.find_hamlib_bin(self.c.get('hamlib_dir', '')))
+            if need and have and hamlibupd.vtuple(have) < hamlibupd.vtuple(need):
+                self.p(f'[!!] Your Hamlib is {have}; this radio needs {need} or newer.', TX, 11)
+                self.lbl_hl = tk.Label(self.body, text='', bg=BG, fg=ACC, font=(UI, -16), anchor='w')
+                bu = ttk.Button(self.body, text='Update Hamlib now', command=lambda: self._install_hamlib(bu))
+                bu.pack(anchor='w', pady=4)
+                self.lbl_hl.pack(anchor='w')
         ports = [f'{p}  {d}' for p, d in RC.list_com_ports()]
         ins, outs = dev_labels('input'), dev_labels('output')
         if prof in ('digirig_hf', 'digirig_ht'):
@@ -2018,6 +2064,8 @@ class SetupWizard:
             self.field('cat_port', 'Radio\'s COM port', 'Yaesu shows two: pick "Enhanced"', 40, ports)
             self.field('cat_baud', 'Speed (baud)', 'must match the radio\'s CAT RATE menu', 10,
                        ['4800', '9600', '19200', '38400', '115200'])
+        if self.c.get('key_method') == 'serial':
+            self.field('key_port', 'CW keying COM port', 'Yaesu: pick "Standard" (the other one)', 40, ports)
         if prof == 'digirig_hf':
             self.field('cat_port', 'DigiRig COM port', '', 40, ports)
             self.field('cat_baud', 'Speed (baud)', 'must match the radio\'s CAT RATE menu (FT-857: 4800/9600)',
@@ -2041,6 +2089,10 @@ class SetupWizard:
             if m:
                 self.c['rig_model'] = int(m.group(1))
                 self.c['rig_model_name'] = self.v_model.get().split('   (#')[0]
+        if self.c.get('key_method') == 'serial' and self.c.get('key_port') and \
+                self.c.get('key_port') == self.c.get('cat_port') and self.c.get('profile') == 'usbrig':
+            return ('CW keying needs the radio\'s OTHER COM port (Yaesu: "Standard"), not the CAT one '
+                    '("Enhanced").')
         if not self.c.get('audio_in'):
             return 'Pick the sound card that carries audio FROM your radio.'
         if self.c['key_method'] == 'audio' and not self.c.get('audio_out'):

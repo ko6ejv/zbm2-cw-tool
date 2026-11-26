@@ -80,12 +80,23 @@ It installs everything (Python, the neural decoder, Hamlib, serial-port access) 
 - No F-keys needed: **Ctrl+1 ... Ctrl+8** = F1 ... F8.
 - Tested on every change on GitHub's ARM64 machines (installer, tests, and the neural decoder at about 30x faster than real time). CM5 is next.
 
-**Radio hookup**
-| Radio | CAT | Audio | CW keying |
+**Radio hookup** - pick your radio in the Setup Wizard and these are filled in for you:
+
+| Radio | CAT (Hamlib model, speed) | Receive audio | CW is sent by |
 |---|---|---|---|
-| Yaesu FT-857D | DigiRig to the CAT jack, Hamlib model FT-857, baud = menu 019 CAT RATE (4800 default) | DigiRig sound card to the DATA jack | DigiRig audio tones (USB / DATA mode) |
-| Yaesu FT-891 | Radio's USB, *Enhanced* COM port, Hamlib model FT-891 | DigiRig to the DATA jack (the FT-891 has no USB sound card) | DTR on the radio's *Standard* COM port (menu PC KEYING = DTR) |
-| Yaesu FTX-1 | Radio's USB, Enhanced port (needs Hamlib 4.7+: **Rig Setup > Update Hamlib**) | Radio's USB sound card | DTR on the Standard port (PC KEYING / RPTT = DTR) |
+| Yaesu FTX-1 | Radio USB, *Enhanced* port (#1051, 38400) - needs Hamlib 4.7+ | Radio's USB sound card | DTR on the *Standard* port (PC KEYING / RPTT = DTR, semi break-in) |
+| Yaesu FT-891 | Radio USB, *Enhanced* port (#1036, menu CAT RATE) | DigiRig on the DATA jack (no USB sound card in the radio) | DTR on the *Standard* port (PC KEYING = DTR, break-in on) |
+| Yaesu FT-857D | DigiRig to the CAT jack (#1022, menu 019 CAT RATE, 4800 default) | DigiRig on the DATA jack | Clean CW tone, radio in USB / DIG |
+| Yaesu FT-817 / FT-818 | DigiRig to ACC (#1020 / #1041) | DigiRig on the DATA jack | Clean CW tone, radio in USB / DIG |
+| Yaesu FT-991A | Radio USB, *Enhanced* port (#1035) | Radio's USB sound card | Radio's keyer |
+| Elecraft KX3 | KXUSB / DigiRig serial to ACC1 (#2045, CONFIG RS232) | PHONES to a USB sound card / DigiRig | Radio's keyer (KY), break-in on |
+| Xiegu G90 | DE-19 or DigiRig to ACC (#3088, 19200) | Same cable | Clean CW tone, radio in USB |
+| Xiegu X6100 | One USB-C cable (#3087, 19200) | Radio's USB sound card | Clean CW tone in U-DIG, PTT by CAT |
+| Xiegu X6200 | One USB-C cable (#3091, 19200) | Radio's USB sound card | Clean CW tone in U-DIG, PTT by CAT |
+| Xiegu G7250 | Not in Hamlib yet - starts as the X6200 (CI-V); **Update Hamlib** when it's added | Radio's USB sound card | Clean CW tone, PTT by CAT |
+| Icom IC-7300 / IC-705 | One USB cable (#3073 / #3085, CI-V USB baud) | Radio's USB sound card | Radio's keyer, break-in SEMI |
+
+Any other radio Hamlib knows (hundreds) works too: pick "Other" and the connection type.
 
 ### Updating Hamlib (any version of the app)
 **Rig Setup > Update Hamlib** downloads the newest official Hamlib from github.com/Hamlib, checks it against Hamlib's published SHA-256, and installs it in the app's own folder - no admin rights, your old Hamlib stays. On Windows that's a 3 MB download; on Linux / Raspberry Pi it is built from source (about 15 minutes on a CM4; needs `sudo apt install build-essential` once). From a terminal: `python hamlibupd.py`. The Setup Wizard offers the same thing as **Install Hamlib now** when no Hamlib is found. OmniRig users: OmniRig is still supported (Windows); update it from its own site, there's a button in Rig Setup.

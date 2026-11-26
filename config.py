@@ -3,7 +3,7 @@ import json
 import os
 import sys
 
-__version__ = '3.2.0'
+__version__ = '3.2.1'
 
 HERE = os.path.dirname(os.path.abspath(sys.argv[0]))
 if getattr(sys, 'frozen', False):          # installed .exe: Program Files is read-only -> per-user folder
@@ -19,14 +19,14 @@ DEFAULTS = {
     # rig control (CAT)
     'cat_backend': 'hamlib_launch',        # hamlib_launch | hamlib_existing | omnirig | none
     'hamlib_dir': '', 'rig_model': 1051, 'rig_model_name': 'Yaesu FTX-1',
-    'cat_port': 'COM7', 'cat_baud': 38400, 'cat_databits': 'Default', 'cat_stopbits': 'Default',
+    'cat_port': '', 'cat_baud': 38400, 'cat_databits': 'Default', 'cat_stopbits': 'Default',
     'cat_handshake': 'Default', 'cat_dtr': 'Default', 'cat_rts': 'Default',
     'rigctld_host': '127.0.0.1', 'rigctld_port': 4532, 'omnirig_rig': 1,
     # keying + PTT
     'key_method': 'rigkeyer',              # rigkeyer | serial | audio
-    'key_port': 'COM8', 'key_line': 'DTR',
+    'key_port': '', 'key_line': 'DTR',
     'ptt_method': 'VOX',                   # CAT | RTS | DTR | VOX(none / break-in)
-    'ptt_port': 'COM8',
+    'ptt_port': '',
     # audio
     'audio_in': '', 'audio_in_ch': 'Left/Mono', 'rx_gain_db': 0, 'audio_out': '', 'audio_out_ch': 'Both',
     'tx_drive': 50, 'sidetone': False, 'sidetone_out': '',
