@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/ko6ejv/zbm2-cw-tool/releases/latest"><img alt="Download for Windows" src="docs/badges/download.svg" height="22"></a>
+  <a href="https://github.com/ko6ejv/zbm2-cw-tool/releases/latest/download/ZBM2-CW-Tool-Setup.exe"><img alt="Download for Windows" src="docs/badges/download.svg" height="22"></a>
   <a href="LICENSE"><img alt="MIT license" src="docs/badges/license.svg" height="22"></a>
   <img alt="Windows | Linux" src="docs/badges/platform.svg" height="22">
   <img alt="Python 3.10+" src="docs/badges/python.svg" height="22">
@@ -64,8 +64,10 @@ Built for brand-new hams, especially **Technicians**, who have CW-only privilege
 ## Install
 
 ### Windows
-Download **ZBM2-CW-Tool-Setup-x.y.z.exe** from [Releases](https://github.com/ko6ejv/zbm2-cw-tool/releases/latest), run it, and the setup wizard opens on first launch. Everything (Python, the decoder model) is bundled, so there's nothing else to install. The **HELP** button (top right) has a one-page quick start; hover over anything for a tip.
-A portable zip is also attached if you don't want to install.
+**[Download the latest version (ZBM2-CW-Tool-Setup.exe)](https://github.com/ko6ejv/zbm2-cw-tool/releases/latest/download/ZBM2-CW-Tool-Setup.exe)** - this link always gets the newest release. Run it, and the setup wizard opens on first launch. Everything (Python, the decoder model) is bundled, so there's nothing else to install. The **HELP** button (top right) has a one-page quick start; hover over anything for a tip.
+A portable zip is also attached to each [release](https://github.com/ko6ejv/zbm2-cw-tool/releases/latest) if you don't want to install.
+
+**Updates:** the app checks GitHub when it starts. When a new version is out, an orange **NEW VERSION - click to update** button shows under the title: one click downloads and installs it (settings and log are kept) and the app reopens. On the uConsole / Raspberry Pi it runs `git pull` and restarts. HELP > **Check for updates** checks by hand; turn the startup check off in Rig Setup.
 
 ### ClockworkPi uConsole (CM4 / CM5) / Raspberry Pi
 <p align="center"><img src="docs/banner-uconsole.svg" alt="ZBM2 CW Tool - uConsole edition" width="100%"></p>

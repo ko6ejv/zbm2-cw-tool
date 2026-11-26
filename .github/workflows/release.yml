@@ -24,7 +24,7 @@ jobs:
         run: >
           pyinstaller --noconfirm --windowed --name "ZBM2 CW Tool" --icon icon.ico
           --add-data "logo.png;." --add-data "logo_big.png;." --add-data "logo_small.png;." --add-data "icon.png;." --add-data "icon.ico;." --add-data "fonts;fonts" --add-data "models;models" --add-data "data/words.txt;data"
-          --hidden-import app --hidden-import tab_chat --hidden-import tab_contest --hidden-import tab_practice --hidden-import tab_log --hidden-import simulator --hidden-import keyring.backends.Windows
+          --hidden-import app --hidden-import tab_chat --hidden-import tab_contest --hidden-import tab_practice --hidden-import tab_log --hidden-import simulator --hidden-import updater --hidden-import bandcond --hidden-import keyring.backends.Windows
           main.py
       - name: Version
         id: ver
@@ -39,6 +39,9 @@ jobs:
       - name: Build installer
         run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "/DAppVersion=${{ steps.ver.outputs.v }}" installer\zbm2cw.iss'
         shell: pwsh
+      - name: Plain-named copy (stable 'latest' download link)
+        shell: pwsh
+        run: Copy-Item "installer/Output/ZBM2-CW-Tool-Setup-${{ steps.ver.outputs.v }}.exe" "installer/Output/ZBM2-CW-Tool-Setup.exe"
       - name: Portable zip
         shell: pwsh
         run: Compress-Archive -Path "dist\ZBM2 CW Tool\*" -DestinationPath "ZBM2-CW-Tool-${{ steps.ver.outputs.v }}-portable.zip"

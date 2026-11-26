@@ -28,6 +28,9 @@ Compression=lzma2/max
 SolidCompression=yes
 PrivilegesRequiredOverridesAllowed=dialog
 ArchitecturesInstallIn64BitMode=x64compatible
+; in-app updates run this silently: close the running app, reuse the old folder, start the new one
+CloseApplications=force
+UsePreviousAppDir=yes
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a &desktop shortcut"; GroupDescription: "Shortcuts:"
@@ -42,6 +45,7 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopico
 
 [Run]
 Filename: "{app}\{#AppExe}"; Description: "Start {#AppName} now (the setup wizard will walk you through the rest)"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#AppExe}"; Flags: nowait skipifnotsilent
 
 [Messages]
 WelcomeLabel2=This will install [name/ver] on your computer.%n%nIt decodes CW (Morse code) from your radio, translates it to plain English, and sends replies for you at the other station's speed.%n%nAfter installing, a setup wizard helps you connect your radio.

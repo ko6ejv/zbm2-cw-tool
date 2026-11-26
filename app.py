@@ -14,6 +14,7 @@ import rigcontrol as RC
 import qso as Q
 import plain as PL
 import online as ON
+import updater as UPD
 from engine import Engine, dev_labels, find_dev, find_dev_like, BAND_CW
 from morse import code_for
 from alerts import missing_fields_alert, license_block_alert
@@ -114,6 +115,8 @@ class App:
         self.eng.start()
         self._sync_engine_vars()
         self.root.after(30, self._poll)
+        if self.cfg.get('update_check', True):
+            self.root.after(6000, lambda: self.check_updates(quiet=True))
         if not self.cfg.get('setup_done'):
             self.root.after(400, lambda: SetupWizard(self))
 
@@ -180,7 +183,7 @@ class App:
         ttk.Button(stats, text='Setup Wizard', command=lambda: SetupWizard(self)).grid(row=2, column=0, padx=2, pady=2)
         ttk.Button(stats, text='Set rig mode', command=self.set_cw_mode).grid(row=2, column=1, padx=2, pady=2)
         ttk.Button(stats, text='Rig Setup', command=self.open_settings).grid(row=2, column=2, padx=2, pady=2)
-        ttk.Button(stats, text='HELP', command=lambda: HelpWindow(self.root)).grid(row=2, column=3, padx=2, pady=2)
+        ttk.Button(stats, text='HELP', command=lambda: HelpWindow(self.root, self)).grid(row=2, column=3, padx=2, pady=2)
         self.cfg['emergency'] = False                  # never carried over from a previous run
         self.btn_emerg = ttk.Button(stats, text='EMERGENCY', style='Stop.TButton', command=self._toggle_emergency)
         self.btn_emerg.grid(row=2, column=4, padx=2, pady=2)
@@ -194,6 +197,9 @@ class App:
         self.lbl_station = tk.Label(tframe, bg=BG, fg=DIM, font=(UI, -13 if C else -16), justify='left',
                                     wraplength=520)
         self.lbl_station.pack(anchor='w')
+        self.btn_update = tk.Button(tframe, text='', bg=ACC, fg=BG, activebackground=FG, relief='flat',
+                                    font=(UI, -13 if C else -16), cursor='hand2', command=self._update_click)
+        self._update_rel = None
 
         # --- RX meter strip ---
         meter = tk.Frame(r, bg=PANEL)
@@ -668,6 +674,70 @@ class App:
         self._cond_tip.text = (f"HF band conditions (N0NBH), day/night:\n{words}\n"
                                f"SFI {c['sfi']}  K {c['k']}  noise {c['noise']}  ({c['updated'].strip()})\n"
                                'Green = good, yellow = fair, red = poor.')
+
+    # ---- updates ----
+    def check_updates(self, quiet=False):
+        """Look for a newer release on GitHub (background). quiet: only speak up when there is one."""
+        def job():
+            try:
+                rel = UPD.latest()
+            except Exception as e:
+                m = f'Update check failed: {e}'
+                if not quiet:
+                    self.root.after(0, lambda: self.set_status(m, err=True))
+                return
+            self.root.after(0, lambda: self._update_found(rel, quiet))
+        threading.Thread(target=job, daemon=True).start()
+
+    def _update_found(self, rel, quiet):
+        if rel and UPD.newer(rel['version']):
+            self._update_rel = rel
+            self.btn_update.config(text=f' NEW VERSION {rel["version"]} - click to update ')
+            if not self.btn_update.winfo_ismapped():
+                self.btn_update.pack(anchor='w', pady=(3, 0))
+            self.set_status(f'ZBM2 CW Tool {rel["version"]} is out (you have {__version__}).')
+            if not quiet:
+                self._update_click()
+        elif not quiet:
+            self.set_status(f'You have the latest version ({__version__}).')
+
+    def _update_click(self):
+        rel = self._update_rel
+        if not rel:
+            return
+        mode = UPD.how()
+        if mode == 'installer':
+            mb = f" ({rel['size'] / 1e6:.0f} MB)" if rel.get('size') else ''
+            q = (f"Update to {rel['version']}?\n\nDownloads {rel['setup_name']}{mb} from github.com and installs it "
+                 'over this one. Your settings and log are kept. The app closes and opens again.')
+        elif mode == 'git':
+            q = (f"Update to {rel['version']}?\n\nRuns git pull in {UPD.HERE}, then restarts the app. "
+                 'Your settings and log are kept.')
+        else:
+            q = f"Version {rel['version']} is out (you have {__version__}).\n\nOpen the download page?"
+        if not messagebox.askyesno('Update', q, parent=self.root):
+            return
+        self.btn_update.config(text=' Updating... ', state='disabled')
+
+        def prog(p):
+            self.root.after(0, lambda: self.btn_update.config(text=f' Downloading {p * 100:.0f}% '))
+
+        def job():
+            try:
+                what, arg = UPD.apply(rel, prog)
+            except Exception as e:
+                m = f'Update failed: {e}'
+                self.root.after(0, lambda: (self.set_status(m, err=True), self.btn_update.config(
+                    text=f' NEW VERSION {rel["version"]} - click to update ', state='normal')))
+                return
+            if what == 'page':
+                import webbrowser
+                webbrowser.open(arg)
+                self.root.after(0, lambda: self.btn_update.config(
+                    text=f' NEW VERSION {rel["version"]} - click to update ', state='normal'))
+            else:
+                self.root.after(300, self.quit)
+        threading.Thread(target=job, daemon=True).start()
 
     def set_cw_mode(self):
         try:
@@ -1644,6 +1714,7 @@ class SettingsDialog:
         t = self.t_snd
         self._check(t, 'earcons_on', 'Morse earcons (UI sounds are real CW)')
         self._check(t, 'earcons_startup_only', 'Only the ZBM2 startup sound')
+        self._check(t, 'update_check', 'Tell me when a new version is out (checks GitHub at startup)')
         self._entry(t, 'earcon_pitch', 'Earcon pitch Hz (differs from RX)', width=6)
         self._entry(t, 'earcon_wpm', 'Earcon character speed WPM', width=6)
         self._entry(t, 'earcon_vol', 'Earcon volume 0-1', width=6)
@@ -1892,7 +1963,7 @@ class SettingsDialog:
         c['min_wpm'], c['max_wpm'] = int(g('min_wpm')), int(g('max_wpm'))
         c['gt_enable'] = bool(g('gt_enable'))
         c['gt_port'] = int(g('gt_port'))
-        for k in ('earcons_on', 'earcons_startup_only', 'earcon_speak', 'rec_autosave', 'auto_lookup', 'auto_qrz_upload',
+        for k in ('update_check', 'earcons_on', 'earcons_startup_only', 'earcon_speak', 'rec_autosave', 'auto_lookup', 'auto_qrz_upload',
                   'auto_lotw_upload'):
             c[k] = bool(g(k))
         c['earcon_pitch'], c['earcon_wpm'] = int(g('earcon_pitch')), int(g('earcon_wpm'))
@@ -1996,9 +2067,9 @@ QUICK_START = [
 
 
 class HelpWindow:
-    def __init__(self, root):
+    def __init__(self, root, app=None):
         w = self.w = tk.Toplevel(root)
-        w.title('ZBM2 CW Tool - Quick start')
+        w.title(f'ZBM2 CW Tool {__version__} - Quick start')
         w.configure(bg=BG)
         w.geometry('820x620')
         t = tk.Text(w, bg='#000000', fg=FG, wrap='word', font=(UI, -16), relief='flat', padx=14, pady=10)
@@ -2018,6 +2089,8 @@ class HelpWindow:
         bar.pack(fill='x', pady=6)
         ttk.Button(bar, text='Open full manual', command=lambda: __import__('webbrowser').open(
             'https://github.com/ko6ejv/zbm2-cw-tool#readme')).pack(side='left', padx=8)
+        if app is not None:
+            ttk.Button(bar, text='Check for updates', command=lambda: app.check_updates()).pack(side='left', padx=8)
         ttk.Button(bar, text='Close', command=w.destroy).pack(side='right', padx=8)
 
 

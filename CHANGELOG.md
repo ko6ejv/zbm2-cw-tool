@@ -1,3 +1,9 @@
+## ZBM2 CW Tool 3.4.1
+
+- Startup update check (GitHub) with an orange NEW VERSION button; one-click update (Windows installer runs silently and reopens the app; git installs pull + restart).
+- HELP > Check for updates; Rig Setup toggle.
+- Stable download link: releases/latest/download/ZBM2-CW-Tool-Setup.exe
+
 ## ZBM2 CW Tool 3.4.0
 
 - BAND list (CAT band change with per-band memory) and TUNE button (CAT tuner; carrier fallback for autotuners).
