@@ -1,3 +1,7 @@
+## ZBM2 CW Tool 3.4.2
+
+- Live dit/dah strip drawn on the spectrum (transparent), letters spelled out above.
+
 ## ZBM2 CW Tool 3.4.1
 
 - Startup update check (GitHub) with an orange NEW VERSION button; one-click update (Windows installer runs silently and reopens the app; git installs pull + restart).

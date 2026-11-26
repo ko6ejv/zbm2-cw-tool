@@ -1199,6 +1199,8 @@ class App:
             self._sp_line = c.create_line(0, 0, 1, 1, fill=RX, width=1)
             self._sp_box = c.create_rectangle(0, 0, 1, 1, outline=ACC)
             self._sp_txt = c.create_text(0, 0, text='', fill=ACC, font=(UI, -16))
+            if getattr(self, 'morse', None):
+                self.morse.render()
         m = (fr >= lo) & (fr <= hi)
         f, d = fr[m], db[m]
         if len(f) < 2:
@@ -1437,63 +1439,94 @@ HS_CHOICES = [('Default', 'Default'), ('None', 'None'), ('Hardware', 'Hardware (
 
 
 class MorseStrip:
-    """Live dits and dahs where the ZBM2 startup flash shows: orange = receiving, red = we're sending.
-    RX elements come from the decoder as they're keyed; TX is played out at our sending speed."""
+    """Live dits and dahs drawn right on the spectrum (top right, no box), with each letter above its
+    elements: orange = receiving, red = we're sending. RX comes from the decoder element by element;
+    TX is played out at our sending speed."""
     RXC, TXC = '#ff8c00', '#ff3c00'
 
     def __init__(self, root, spec, compact):
-        self.root, self.spec = root, spec
-        self.W, self.H = (190, 22) if compact else (280, 30)
-        self.u = 4 if compact else 5                      # pixels per dit
-        self.c = tk.Canvas(spec, width=self.W, height=self.H, bg='#000000', highlightthickness=1,
-                           highlightbackground='#3a2600')
-        self.x = 6
+        self.root, self.c = root, spec
+        self.SW = 200 if compact else 300                  # strip width (px), right edge of the spectrum
+        self.u = 4 if compact else 5                       # pixels per dit
+        self.ly, self.dy = (24, 35) if compact else (30, 44)   # letter / element rows (below the Hz scale)
+        self.fs = -12 if compact else -15
+        self.els, self.lets = [], []                       # (x, w, dah, col) / (xc, ch, col)
+        self.x, self.pend, self.pend_x, self.pend_col = 0, '', 0, self.RXC
         self.last = 0.0
-        self.q, self.qjob, self.key_id = [], None, None
-        self.lamp = self.c.create_oval(4, self.H / 2 - 3, 10, self.H / 2 + 3, fill='', outline='')
-        self.x0 = 16
-        self.x = self.x0
+        self.q, self.qjob = [], None
         self._idle()
 
-    def place(self):
-        self.c.place(in_=self.spec, relx=1.0, x=-4, y=2, anchor='ne')
+    def place(self):                                       # kept for the caller; nothing to place
+        pass
 
-    # --- drawing ---
-    def _gap(self, units):
-        self.x += units * self.u
+    # --- model ---
+    def _now(self):
+        import time as _t
+        return _t.time()
 
     def _mark(self, dah, col):
-        import time as _t
-        self.last = _t.time()
+        if not self.pend:
+            self.pend_x, self.pend_col = self.x, col
         w = (3 if dah else 1) * self.u
-        h = self.u
-        y0 = self.H / 2 - h / 2
-        if self.x + w > self.W - 4:                       # scroll left
-            dx = self.x + w - (self.W - 4)
-            for i in self.c.find_withtag('el'):
-                self.c.move(i, -dx, 0)
-                if self.c.coords(i)[2] < self.x0:
-                    self.c.delete(i)
-            self.x -= dx
-        if dah:
-            self.c.create_rectangle(self.x, y0, self.x + w, y0 + h, fill=col, outline='', tags='el')
-        else:
-            self.c.create_oval(self.x, y0, self.x + w, y0 + h, fill=col, outline='', tags='el')
+        self.els.append((self.x, w, dah, col))
         self.x += w + self.u
-        self.c.itemconfig(self.lamp, fill=col)
-        self.root.after(120, lambda: self.c.itemconfig(self.lamp, fill=''))
+        self.pend += '-' if dah else '.'
+        self.last = self._now()
+        self.render()
+
+    def _letter(self, ch=None):
+        """Close the letter being built: label it (decoded from its pattern unless given)."""
+        if self.pend:
+            from morse import DECODE
+            ch = ch or DECODE.get(self.pend, '?')
+            xc = (self.pend_x + self.x - self.u) / 2
+            self.lets.append((xc, ch.strip('<>'), self.pend_col))
+            self.pend = ''
+            self.render()
+
+    def _gap(self, units):
+        self._letter()
+        self.x += units * self.u
+
+    def render(self):
+        c = self.c
+        c.delete('ms')
+        W = max(c.winfo_width(), 100)
+        x0 = W - self.SW - 4
+        off = max(0, self.x - self.SW)
+        keep = off - 4 * self.u                            # forget what has scrolled away
+        self.els = [e for e in self.els if e[0] + e[1] > keep]
+        self.lets = [t for t in self.lets if t[0] > keep]
+        h = self.u
+        for x, w, dah, col in self.els:
+            X = x0 + x - off
+            if X < x0:
+                continue
+            if dah:
+                c.create_rectangle(X, self.dy - h / 2, X + w, self.dy + h / 2, fill=col, outline='', tags='ms')
+            else:
+                c.create_oval(X, self.dy - h / 2, X + w, self.dy + h / 2, fill=col, outline='', tags='ms')
+        for xc, ch, col in self.lets:
+            X = x0 + xc - off
+            if X >= x0:
+                c.create_text(X, self.ly, text=ch, fill=col, font=(UI, self.fs, 'bold'), tags='ms')
+        c.tag_raise('ms')
 
     def _idle(self):
-        import time as _t
-        if self.c.find_withtag('el') and _t.time() - self.last > 6 and not self.q:
-            self.c.delete('el')
-            self.x = self.x0
-        self.root.after(1000, self._idle)
+        t = self._now() - self.last
+        if self.pend and t > 1.5 and not self.q:          # last letter of an over: label it
+            self._letter()
+        if (self.els or self.lets) and t > 8 and not self.q:
+            self.els, self.lets, self.x = [], [], 0
+            self.render()
+        self.root.after(500, self._idle)
 
     # --- RX: one call per keyed element / space from the decoder ---
     def rx(self, kind, ms, dit):
         dit = dit or 60.0
         if kind == 'mark':
+            if self.pend and self.pend_col != self.RXC:
+                self._letter()
             self._mark(ms > 2.0 * dit, self.RXC)
         elif ms > 5.0 * dit:
             self._gap(4)
@@ -1504,14 +1537,14 @@ class MorseStrip:
     def tx(self, tok, wpm):
         dit = 1.2 / max(5, wpm or 20)
         if tok == ' ':
-            self.q.append(('gap', 4 * dit))
+            self.q.append(('gap', 4 * dit, ''))
         else:
             code = code_for(tok) or ''
             for el in code:
-                self.q.append(('dah' if el == '-' else 'dit', (3 if el == '-' else 1) * dit))
-                self.q.append(('egap', dit))
+                self.q.append(('dah' if el == '-' else 'dit', (3 if el == '-' else 1) * dit, ''))
+                self.q.append(('egap', dit, ''))
             if code:
-                self.q.append(('gap', 2 * dit))
+                self.q.append(('let', 2 * dit, tok))
         if self.qjob is None:
             self._run()
 
@@ -1519,11 +1552,16 @@ class MorseStrip:
         if not self.q:
             self.qjob = None
             return
-        kind, dur = self.q.pop(0)
+        kind, dur, tok = self.q.pop(0)
         if kind in ('dit', 'dah'):
+            if self.pend and self.pend_col != self.TXC:
+                self._letter()
             self._mark(kind == 'dah', self.TXC)
+        elif kind == 'let':
+            self._letter(tok)
+            self.x += 2 * self.u
         elif kind == 'gap':
-            self._gap(2)
+            self._gap(3)
         self.qjob = self.root.after(max(1, int(dur * 1000)), self._run)
 
     def tx_done(self):
