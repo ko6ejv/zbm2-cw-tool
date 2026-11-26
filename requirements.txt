@@ -1,0 +1,6 @@
+numpy
+sounddevice
+pyserial
+keyring
+onnxruntime
+pywin32; sys_platform == "win32"

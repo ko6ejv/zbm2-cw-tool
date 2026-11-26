@@ -1,3 +1,24 @@
+# local settings, logs and recordings (contain passwords / personal data)
+config.json
+*.adi
+data/MASTER.SCP
+.backups/
+*.log
+ftx_*.wav
+zbm2_shot*.png
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+# builds
+build/
+dist/
+*.spec
+installer/Output/
+
+# --- GitHub Python template ---
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

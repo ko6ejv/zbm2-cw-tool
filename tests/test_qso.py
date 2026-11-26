@@ -1,0 +1,21 @@
+import sys; sys.path[:0] = ['.']
+import qso as Q
+cfg = dict(call='KO6EJV', name='DERIC', qth='LA MESA CA', grid='DM12LS')
+q = Q.QSO('KO6EJV')
+def rx(s):
+    q.feed(s + " ")
+    print(f'RX  {s:55s} -> {q.state:9s} call={q.call} rst={q.rst_rcvd} name={q.name} qth={q.qth} grid={q.grid}')
+    print(f'    NEXT: {q.suggest(cfg, "579")}')
+def tx(s): q.note_sent(s); print(f'TX  {s}')
+rx('CQ CQ CQ DE W1AW W1AW K')
+tx(q.suggest(cfg, '579'))
+rx('KO6EJV DE W1AW GE TNX FER CALL UR RST 5NN 5NN NAME BOB BOB QTH NEWINGTON CT GRID FN31 HW? KO6EJV DE W1AW KN')
+tx(q.suggest(cfg, '579'))
+rx('KO6EJV DE W1AW R FB DERIC TNX FER QSO 73 TU <SK>')
+print('--- someone answers my CQ')
+q.reset(); tx(Q.macro('cq', cfg, q, '599'))
+rx('KO6EJV DE N6ABC N6ABC K')
+tx(q.suggest(cfg,'589'))
+rx('AGN?')
+print(Q.dist_bearing('DM12LS','FN31'), Q.band_for(14040000), Q.rst_from_snr(22))
+rec,_,_ = Q.adif_record(q, cfg, 14040000, '589'); print(rec)

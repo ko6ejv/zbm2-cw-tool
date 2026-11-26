@@ -1,0 +1,52 @@
+name: Release
+# Push a tag like v3.0.0 -> builds the Windows installer + a portable zip and attaches them to a GitHub Release.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt pyinstaller pytest
+      - run: python -m pytest -q tests/test_all.py
+      - name: Build app (PyInstaller, one folder)
+        run: >
+          pyinstaller --noconfirm --windowed --name "ZBM2 CW Tool" --icon icon.ico
+          --add-data "logo.png;." --add-data "icon.png;." --add-data "icon.ico;." --add-data "fonts;fonts" --add-data "models;models" --add-data "data/words.txt;data"
+          --hidden-import app --hidden-import tab_chat --hidden-import tab_contest --hidden-import tab_practice --hidden-import tab_log --hidden-import simulator --hidden-import keyring.backends.Windows
+          main.py
+      - name: Version
+        id: ver
+        shell: pwsh
+        run: |
+          $v = "${{ github.ref_name }}"
+          if ($v -like 'v*') { $v = $v.Substring(1) } else { $v = '0.0.0-dev' }
+          "v=$v" >> $env:GITHUB_OUTPUT
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+      - name: Build installer
+        run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "/DAppVersion=${{ steps.ver.outputs.v }}" installer\zbm2cw.iss'
+        shell: pwsh
+      - name: Portable zip
+        shell: pwsh
+        run: Compress-Archive -Path "dist\ZBM2 CW Tool\*" -DestinationPath "ZBM2-CW-Tool-${{ steps.ver.outputs.v }}-portable.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: |
+            installer/Output/*.exe
+            *.zip
+      - uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          files: |
+            installer/Output/*.exe
+            *.zip
+          generate_release_notes: true
