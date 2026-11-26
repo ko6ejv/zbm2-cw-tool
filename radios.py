@@ -59,6 +59,13 @@ RADIOS = {
         note='New radio - Hamlib has no G7250 entry yet, so this starts as the Xiegu X6200 (Xiegu radios '
              'speak Icom-style CI-V). If CAT does not answer, check the CI-V speed/address in the radio menu. '
              'When Hamlib adds the G7250, Rig Setup > Update Hamlib and pick it in the radio list.'),
+    '(tr)uSDX (DL2MAN)': dict(
+        profile='digirig_hf', rig_model=2055, cat_baud=115200, key_method='audio', ptt_method='CAT',
+        hamlib_ptt='RIG', cat_rts='OFF', audio_hint=['USB PnP Sound', 'USB Audio Device'], digirig_audio=True,
+        note='DigiRig with the (tr)uSDX cable: receive/transmit audio plus CAT (115200 baud; match the radio\'s '
+             'CAT speed). Put the radio in USB: CW goes out as a clean tone, PTT by CAT (the DigiRig RTS line '
+             'is not used). No DigiRig? The radio\'s own USB-C port does CAT, with audio from the "trusdx-audio" '
+             'driver. Practice without RF: menu 3.3 TX Drive = 0 (display shows P instead of T).'),
     'Icom IC-7300': dict(
         profile='usbrig', rig_model=3073, cat_baud=115200, key_method='rigkeyer',
         audio_hint=['USB Audio CODEC'],
@@ -78,7 +85,7 @@ def apply_radio(cfg, name, apply_profile):
     if not r:
         return None
     apply_profile(cfg, r['profile'])
-    for k in ('rig_model', 'cat_baud', 'key_method', 'key_line', 'ptt_method', 'hamlib_ptt'):
+    for k in ('rig_model', 'cat_baud', 'key_method', 'key_line', 'ptt_method', 'hamlib_ptt', 'cat_dtr', 'cat_rts'):
         if k in r:
             cfg[k] = r[k]
     cfg['rig_model_name'] = name

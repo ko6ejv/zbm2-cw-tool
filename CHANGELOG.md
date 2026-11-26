@@ -1,3 +1,7 @@
+## ZBM2 CW Tool 3.5.2
+
+- (tr)uSDX preset: Hamlib #2055, 115200, tone keying in USB, CAT PTT, RTS off.
+
 ## ZBM2 CW Tool 3.5.1
 
 - PRIVACY.md shown in the installer with per-feature checkboxes (install_options.json defaults); band-conditions toggle; exe version info; code signing policy in README.

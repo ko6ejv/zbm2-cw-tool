@@ -296,3 +296,16 @@ def test_install_options_are_defaults(tmp_path, monkeypatch):
     assert c['update_check'] is False and c['rbn_enable'] is False and c['call'] == ''   # only network keys
     (tmp_path / 'config.json').write_text(json.dumps({'update_check': True}))
     assert config.load_cfg()['update_check'] is True                                     # Rig Setup wins
+
+
+def test_trusdx_preset():
+    import radios
+    from config import DEFAULTS
+    cfg = dict(DEFAULTS)
+
+    def apply_profile(c, key):
+        c['profile'] = key
+    r = radios.apply_radio(cfg, '(tr)uSDX (DL2MAN)', apply_profile)
+    assert r and cfg['rig_model'] == 2055 and cfg['cat_baud'] == 115200
+    assert cfg['key_method'] == 'audio' and cfg['ptt_method'] == 'CAT' and cfg['hamlib_ptt'] == 'RIG'
+    assert cfg['cat_rts'] == 'OFF' and cfg['profile'] == 'digirig_hf'
