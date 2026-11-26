@@ -2031,6 +2031,8 @@ class SettingsDialog:
         c['emergency'] = self.app.cfg.get('emergency', False)   # this dialog doesn't own it
         self.app.cfg.update(c)
         self.app._apply_tx_backend()
+        if self.app.tx.busy.is_set() or not self.app.eng.check_tx()[0]:
+            return
         self.app.tx.tone = self.app.v_tone.get()
         self.app.tx.tune(10)
 
@@ -2566,6 +2568,9 @@ class SetupWizard:
     def _send_test(self):
         self._sync()
         self._apply_live()
+        if not self.app.eng.check_tx()[0]:
+            self.lbl_tx.config(text='Not sent - see the message on the main screen (frequency / license guard).')
+            return
         self.app.tx.wpm = 15
         self.app.tx.tone = self.app.v_tone.get()
         self.app.tx.send(f'VVV DE {self.c["call"]}')
@@ -2574,6 +2579,9 @@ class SetupWizard:
     def _tune(self):
         self._sync()
         self._apply_live()
+        if self.app.tx.busy.is_set() or not self.app.eng.check_tx()[0]:
+            self.lbl_tx.config(text='Not sent - see the message on the main screen (frequency / license guard).')
+            return
         self.app.tx.tone = self.app.v_tone.get()
         self.app.tx.tune(10)
 

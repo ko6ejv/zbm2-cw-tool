@@ -49,7 +49,10 @@ def latest(timeout=10):
 
 def how():
     if getattr(sys, 'frozen', False) and sys.platform == 'win32':
-        return 'installer'
+        exe_dir = os.path.dirname(sys.executable)          # Inno Setup leaves its uninstaller next to the exe
+        if any(f.lower().startswith('unins') and f.lower().endswith('.exe') for f in os.listdir(exe_dir)):
+            return 'installer'
+        return 'page'                                      # portable zip: don't install a second copy
     if os.path.isdir(os.path.join(HERE, '.git')):
         return 'git'
     return 'page'

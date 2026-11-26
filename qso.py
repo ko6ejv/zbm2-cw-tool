@@ -49,14 +49,15 @@ def band_for(freq):
 
 
 # CW-legal segments (MHz) by US license class, Part 97.301/97.305
-_EXTRA = [(1.8, 2.0), (3.5, 4.0), (5.3305, 5.4065), (7.0, 7.3), (10.1, 10.15), (14.0, 14.35),
+_EXTRA = [(1.8, 2.0), (3.5, 4.0), (7.0, 7.3), (10.1, 10.15), (14.0, 14.35),
           (18.068, 18.168), (21.0, 21.45), (24.89, 24.99), (28.0, 29.7)]
-_GENERAL = [(1.8, 2.0), (3.525, 3.6), (3.8, 4.0), (5.3305, 5.4065), (7.025, 7.125), (7.175, 7.3),
+_GENERAL = [(1.8, 2.0), (3.525, 3.6), (3.8, 4.0), (7.025, 7.125), (7.175, 7.3),
             (10.1, 10.15), (14.025, 14.15), (14.225, 14.35), (18.068, 18.168), (21.025, 21.2),
             (21.275, 21.45), (24.89, 24.99), (28.0, 29.7)]
 _TECH = [(3.525, 3.6), (7.025, 7.125), (21.025, 21.2), (28.0, 28.5)]
 _VHF_UP = [(50, 54), (144, 148), (219, 225), (420, 450), (902, 928), (1240, 1300)]
 LICENSE_CLASSES = ['Technician', 'General', 'Amateur Extra']
+CH60_CW = (5332000, 5348000, 5358500, 5373000, 5405000)   # 97.303(h): CW on the channel centre
 
 
 def cw_allowed(freq_hz, lic):
@@ -64,6 +65,11 @@ def cw_allowed(freq_hz, lic):
     if not freq_hz:
         return True, ''
     mhz = freq_hz / 1e6
+    if 5.3 < mhz < 5.41:                            # 60 m: channels; CW must sit on the channel centre
+        if lic in ('General', 'Amateur Extra') and any(abs(freq_hz - c) <= 100 for c in CH60_CW):
+            return True, ''
+        return False, (f'{mhz:.4f} MHz: on 60 m, CW goes exactly on a channel centre '
+                       '(5.3320, 5.3480, 5.3585, 5.3730, 5.4050 MHz), General and up.')
     segs = {'Technician': _TECH, 'General': _GENERAL}.get(lic, _EXTRA) + _VHF_UP
     for lo, hi in segs:
         if lo + 0.0005 <= mhz <= hi - 0.0005:       # keep ~500 Hz off the edge

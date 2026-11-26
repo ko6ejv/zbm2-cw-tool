@@ -1,3 +1,10 @@
+## ZBM2 CW Tool 3.4.7
+
+- Guard blocks TX when CAT is configured but not answering; audio keying checked at dial +/- tone; 60 m channel centres only.
+- Rig Setup TUNE and wizard TX test go through the guard; no band change mid-TX; band memory follows the knob.
+- Atomic config save; portable copies update via the download page.
+- Tests for guard edges, updater version compare, band-conditions parser.
+
 ## ZBM2 CW Tool 3.4.6
 
 - BAND list no longer stops the screen updating while its dropdown is open; UI pump survives a bad event.

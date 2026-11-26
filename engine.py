@@ -452,6 +452,9 @@ class Engine:
                         m, pb = rig.get_mode()
                         self.freq, self.mode = f or 0, m or ''
                         self.rig_ok, self.rig_err = True, ''
+                        b = Q.band_for(self.freq)
+                        if b in BAND_CW:
+                            self.cfg.setdefault('band_mem', {})[b] = int(self.freq)
                 else:
                     self.rig_ok, self.rig_err = False, 'no CAT'
             except Exception as e:
@@ -479,6 +482,8 @@ class Engine:
     # ---- quick band change + antenna tuner (CAT) ----
     def qsy_band(self, band):
         """Jump to a band: back to where you were last on it, else a common CW spot. -> Hz"""
+        if self.tx.busy.is_set():
+            raise RuntimeError('not while transmitting')
         mem = self.cfg.setdefault('band_mem', {})
         cur = Q.band_for(self.freq)
         if cur and self.freq:
@@ -614,7 +619,16 @@ class Engine:
             return False, why
         if not self.cfg.get('license_guard', True):        # operator turned the band guard off
             return True, ''
-        ok, why = Q.cw_allowed(self.freq if self.rig_ok else 0, self.cfg.get('license_class', 'Technician'))
+        if not self.sim and self.cfg.get('cat_backend', 'none') != 'none' and not (self.rig_ok and self.freq):
+            why = ("Can't read the radio's frequency (CAT not answering), so the license guard can't check "
+                   "it. Fix CAT (Rig Setup > Test CAT), or untick License guard if you're sure.")
+            self.emit('blocked', why)
+            return False, why
+        f = self.freq if self.rig_ok else 0
+        if f and self.cfg.get('key_method') == 'audio':     # tone keying in SSB/DATA: signal is off the dial
+            lower = str(self.mode).upper().endswith('L') or 'LSB' in str(self.mode).upper()
+            f = f - self.cfg['tone'] if lower else f + self.cfg['tone']
+        ok, why = Q.cw_allowed(f, self.cfg.get('license_class', 'Technician'))
         if not ok:
             self.earcons.play('error')
             self.emit('blocked', why)

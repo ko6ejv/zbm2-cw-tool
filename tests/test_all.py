@@ -214,3 +214,41 @@ def test_simulator_operators():
     c = s.stations[0].call
     s._respond(f'{c} DERIC CA')
     assert s.stations[0].last_said.startswith('TU DERIC')
+
+
+def _guard(**kw):
+    import types
+    import engine
+    cfg = dict(call='KO6EJV', license_guard=True, license_class='General', cat_backend='hamlib_launch',
+               key_method='serial', tone=700)
+    cfg.update(kw.pop('cfg', {}))
+    e = types.SimpleNamespace(cfg=cfg, sim=None, rig_ok=True, freq=7030000, mode='CW', emit=lambda *a: None,
+                              earcons=types.SimpleNamespace(play=lambda *a, **k: None))
+    for k, v in kw.items():
+        setattr(e, k, v)
+    return engine.Engine.check_tx(e)[0]
+
+
+def test_tx_guard_edges():
+    assert _guard()
+    assert not _guard(rig_ok=False)                                    # CAT down: can't check -> no TX
+    assert _guard(rig_ok=False, cfg={'cat_backend': 'none'})           # no CAT at all: operator's call
+    assert _guard(rig_ok=False, cfg={'license_guard': False})
+    assert not _guard(cfg={'call': ''})
+    assert not _guard(freq=7019800)
+    # tone keying in USB transmits at dial + tone
+    assert not _guard(freq=7124000, mode='PKTUSB', cfg={'key_method': 'audio'})
+    assert _guard(freq=7025000, mode='USB', cfg={'key_method': 'audio'})
+
+
+def test_updater_version_compare():
+    import updater as U
+    assert U.newer('3.4.10', '3.4.9') and not U.newer('3.4.0', '3.4.0') and not U.newer('v3.3.1', '3.4.0')
+
+
+def test_bandcond_parse():
+    import bandcond
+    x = ('<solarflux>87</solarflux><kindex> 1</kindex><band name="80m-40m" time="day">Fair</band>'
+         '<band name="80m-40m" time="night">Good</band>')
+    r = bandcond.parse(x)
+    assert r['bands']['80m-40m'] == ('Fair', 'Good') and r['sfi'] == '87' and r['k'] == '1'

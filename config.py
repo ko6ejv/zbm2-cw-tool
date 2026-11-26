@@ -3,7 +3,7 @@ import json
 import os
 import sys
 
-__version__ = '3.4.6'
+__version__ = '3.4.7'
 
 HERE = os.path.dirname(os.path.abspath(sys.argv[0]))
 if getattr(sys, 'frozen', False):          # installed .exe: Program Files is read-only -> per-user folder
@@ -120,8 +120,10 @@ def save_cfg(cfg):
                     pass
         except Exception:
             pass
-    with open(CFG_PATH, 'w') as f:
+    tmp = CFG_PATH + '.tmp'                 # write-then-rename: a crash mid-save can't wipe your settings
+    with open(tmp, 'w') as f:
         json.dump(out, f, indent=2)
+    os.replace(tmp, CFG_PATH)
     if os.name != 'nt':
         try:
             os.chmod(CFG_PATH, 0o600)       # owner-only if passwords had to stay in the file
