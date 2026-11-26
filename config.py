@@ -3,7 +3,7 @@ import json
 import os
 import sys
 
-__version__ = '3.5.0'
+__version__ = '3.5.1'
 
 HERE = os.path.dirname(os.path.abspath(sys.argv[0]))
 if getattr(sys, 'frozen', False):          # installed .exe: Program Files is read-only -> per-user folder
@@ -38,7 +38,7 @@ DEFAULTS = {
     'match_wpm': True, 'wpm_offset': 0, 'manual_wpm': 18, 'min_wpm': 8, 'max_wpm': 35,
     # earcons (Morse UI sounds)
     'neural_decoder': True, 'neural_width_hz': 250,
-    'update_check': True, 'rbn_enable': True,
+    'update_check': True, 'rbn_enable': True, 'bandcond_enable': True,
     'earcons_on': True, 'earcons_startup_only': True, 'earcon_pitch': 800, 'earcon_vol': 0.25, 'earcon_wpm': 22, 'earcon_speak': False,
     # chat profile (rag-chew quick-fills)
     'chat_rig': '', 'chat_ant': '', 'chat_pwr': '100W', 'chat_age': '', 'chat_lic': '',
@@ -80,8 +80,22 @@ def _keyring():
         return None
 
 
+def _install_options():
+    """Choices made in the Windows installer (network features), next to the exe. Defaults only:
+    anything changed later in Rig Setup wins."""
+    p = os.path.join(os.path.dirname(os.path.abspath(sys.executable if getattr(sys, 'frozen', False)
+                                                     else sys.argv[0])), 'install_options.json')
+    try:
+        with open(p) as f:
+            d = json.load(f)
+        return {k: bool(v) for k, v in d.items() if k in ('update_check', 'rbn_enable', 'bandcond_enable')}
+    except (OSError, ValueError, AttributeError):
+        return {}
+
+
 def load_cfg():
     cfg = dict(DEFAULTS)
+    cfg.update(_install_options())
     try:
         with open(CFG_PATH) as f:
             cfg.update(json.load(f))

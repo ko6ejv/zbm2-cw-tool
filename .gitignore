@@ -243,3 +243,5 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 hamlib/
+version_info.txt
+PRIVACY.txt

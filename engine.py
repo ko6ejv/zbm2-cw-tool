@@ -496,6 +496,9 @@ class Engine:
     def _cond_loop(self):
         import bandcond
         while True:
+            if not self.cfg.get('bandcond_enable', True):
+                time.sleep(30)
+                continue
             try:
                 self.emit('bandcond', bandcond.fetch())
                 time.sleep(1800)

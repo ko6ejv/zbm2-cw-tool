@@ -65,7 +65,7 @@ Built for brand-new hams, especially **Technicians**, who have CW-only privilege
 
 ### Windows
 **[Download the latest version (ZBM2-CW-Tool-Setup.exe)](https://github.com/ko6ejv/zbm2-cw-tool/releases/latest/download/ZBM2-CW-Tool-Setup.exe)** - this link always gets the newest release. Run it, and the setup wizard opens on first launch. Everything (Python, the decoder model) is bundled, so there's nothing else to install. The **HELP** button (top right) has a one-page quick start; hover over anything for a tip.
-A portable zip is also attached to each [release](https://github.com/ko6ejv/zbm2-cw-tool/releases/latest) if you don't want to install.
+Releases: see the [Code signing policy](#code-signing-policy). A portable zip is also attached to each [release](https://github.com/ko6ejv/zbm2-cw-tool/releases/latest) if you don't want to install.
 
 **Updates:** the app checks GitHub when it starts. When a new version is out, an orange **NEW VERSION - click to update** button shows under the title: one click downloads and installs it (settings and log are kept) and the app reopens. On the uConsole / Raspberry Pi it runs `git pull` and restarts. HELP > **Check for updates** checks by hand; turn the startup check off in Rig Setup.
 
@@ -170,6 +170,16 @@ Pushing a tag like `v3.0.0` makes GitHub Actions run the tests and build the Win
 
 ## Callsign database (optional)
 Garbled calls are corrected against calls heard this session and, if present, **MASTER.SCP** (Super Check Partial). Download it from [supercheckpartial.com](https://www.supercheckpartial.com/) and drop it in `data/`.
+
+## Privacy
+No telemetry, no accounts. The app only goes online for the update check, band conditions, live CW spots (your callsign is the RBN login) and the lookups / uploads you set up yourself, and each can be turned off. Details: [PRIVACY.md](PRIVACY.md).
+
+## Code signing policy
+Windows releases are being set up for signing: *Free code signing provided by [SignPath.io](https://about.signpath.io/), certificate by [SignPath Foundation](https://signpath.org/).*
+- Committers and reviewers: [ko6ejv](https://github.com/ko6ejv) (repository owner)
+- Approvers: [ko6ejv](https://github.com/ko6ejv)
+- Every release is built from this repository by GitHub Actions ([release.yml](.github/workflows/release.yml)); nothing is built or signed by hand.
+- Privacy policy: [PRIVACY.md](PRIVACY.md)
 
 ## Credits
 - CW decoding model: **DeepCW** by e04 ([deepcw-engine](https://github.com/e04/deepcw-engine)), MIT. Model in `models/`, license in `models/DEEPCW_LICENSE.txt`; stitching code vendored in `deepcw_engine.py`.

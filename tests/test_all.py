@@ -283,3 +283,16 @@ def test_rbn_spots_and_region():
     assert [r.feed(x) for x in lines] == [True, True, True, False, False]
     assert r.counts() == {'30M': 1, '40M': 1} and r.counts(near_only=False)['80M'] == 1
     assert r.on_band('40M')[0]['call'] == 'HA8RC' and r.counts(now=1e12) == {}
+
+
+def test_install_options_are_defaults(tmp_path, monkeypatch):
+    import json
+    import config
+    (tmp_path / 'install_options.json').write_text(json.dumps({'update_check': False, 'rbn_enable': False,
+                                                               'bandcond_enable': True, 'call': 'HACK'}))
+    monkeypatch.setattr(sys, 'argv', [str(tmp_path / 'main.py')])
+    monkeypatch.setattr(config, 'CFG_PATH', str(tmp_path / 'config.json'))
+    c = config.load_cfg()
+    assert c['update_check'] is False and c['rbn_enable'] is False and c['call'] == ''   # only network keys
+    (tmp_path / 'config.json').write_text(json.dumps({'update_check': True}))
+    assert config.load_cfg()['update_check'] is True                                     # Rig Setup wins

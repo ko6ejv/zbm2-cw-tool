@@ -1,3 +1,7 @@
+## ZBM2 CW Tool 3.5.1
+
+- PRIVACY.md shown in the installer with per-feature checkboxes (install_options.json defaults); band-conditions toggle; exe version info; code signing policy in README.
+
 ## ZBM2 CW Tool 3.5.0
 
 - Reverse Beacon Network: per-band activity in the BAND list, SPOTS window with click-to-tune.

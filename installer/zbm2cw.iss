@@ -20,6 +20,11 @@ DisableProgramGroupPage=yes
 OutputDir=Output
 OutputBaseFilename=ZBM2-CW-Tool-Setup-{#AppVersion}
 SetupIconFile=..\icon.ico
+InfoBeforeFile=..\PRIVACY.txt
+VersionInfoProductName={#AppName}
+VersionInfoProductVersion={#AppVersion}
+VersionInfoVersion={#AppVersion}
+VersionInfoCompany=ZBM2 Industries
 UninstallDisplayIcon={app}\{#AppExe}
 WizardStyle=modern
 WizardImageFile=wizard_large.bmp
@@ -34,6 +39,23 @@ UsePreviousAppDir=yes
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a &desktop shortcut"; GroupDescription: "Shortcuts:"
+Name: "net_update"; Description: "Check GitHub for new versions at startup"; GroupDescription: "Internet features (see the privacy page; change any time in Rig Setup):"
+Name: "net_bandcond"; Description: "HF band conditions (hamqsl.com)"; GroupDescription: "Internet features (see the privacy page; change any time in Rig Setup):"
+Name: "net_rbn"; Description: "Live CW activity (Reverse Beacon Network; logs in with your callsign)"; GroupDescription: "Internet features (see the privacy page; change any time in Rig Setup):"
+
+[Code]
+function B(T: String): String;
+begin
+  if WizardIsTaskSelected(T) then Result := 'true' else Result := 'false';
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep = ssPostInstall then
+    SaveStringToFile(ExpandConstant('{app}\install_options.json'),
+      '{"update_check": ' + B('net_update') + ', "bandcond_enable": ' + B('net_bandcond') +
+      ', "rbn_enable": ' + B('net_rbn') + '}', False);
+end;
 
 [Files]
 Source: "..\dist\{#AppName}\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion

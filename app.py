@@ -1721,6 +1721,7 @@ class SettingsDialog:
         t = self.t_snd
         self._check(t, 'earcons_on', 'Morse earcons (UI sounds are real CW)')
         self._check(t, 'earcons_startup_only', 'Only the ZBM2 startup sound')
+        self._check(t, 'bandcond_enable', 'HF band conditions (hamqsl.com, every 30 min)')
         self._check(t, 'rbn_enable', 'Live CW activity from the Reverse Beacon Network (logs in with your call)')
         self._check(t, 'update_check', 'Tell me when a new version is out (checks GitHub at startup)')
         self._entry(t, 'earcon_pitch', 'Earcon pitch Hz (differs from RX)', width=6)
@@ -1971,7 +1972,7 @@ class SettingsDialog:
         c['min_wpm'], c['max_wpm'] = int(g('min_wpm')), int(g('max_wpm'))
         c['gt_enable'] = bool(g('gt_enable'))
         c['gt_port'] = int(g('gt_port'))
-        for k in ('rbn_enable', 'update_check', 'earcons_on', 'earcons_startup_only', 'earcon_speak', 'rec_autosave', 'auto_lookup', 'auto_qrz_upload',
+        for k in ('bandcond_enable', 'rbn_enable', 'update_check', 'earcons_on', 'earcons_startup_only', 'earcon_speak', 'rec_autosave', 'auto_lookup', 'auto_qrz_upload',
                   'auto_lotw_upload'):
             c[k] = bool(g(k))
         c['earcon_pitch'], c['earcon_wpm'] = int(g('earcon_pitch')), int(g('earcon_wpm'))
