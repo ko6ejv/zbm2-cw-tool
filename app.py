@@ -184,6 +184,13 @@ class App:
         ttk.Checkbutton(vt, text='Plain English', variable=self.v_plain_cb,
                         command=self._toggle_plain).pack(side='left', padx=6)
         ttk.Checkbutton(vt, text='Sidetone', variable=self.v_sidetone, command=self._save_quick).pack(side='left')
+        self.v_guard = tk.BooleanVar(value=self.cfg.get('license_guard', True))
+        gcb = ttk.Checkbutton(vt, text='License guard', variable=self.v_guard, command=self._guard_toggled)
+        gcb.pack(side='left', padx=(10, 0))
+        Tip(gcb, 'ON: the app refuses to transmit outside your license class\'s CW band segments (when it can '
+                 'read the radio\'s frequency). OFF: you are responsible for staying in your privileges.')
+        self.lbl_guard = tk.Label(vt, text='', bg=TX, fg=BG, font=(UI, -14), padx=4)
+        self._guard_toggled(save=False)
         self.v_sim = tk.BooleanVar(value=False)
         self.sim_badge = tk.Label(vt, text=' SIM ', bg=BG, fg=DIM, font=(UI, -16), cursor='hand2', padx=4)
         self.sim_badge.pack(side='left', padx=(10, 0))
@@ -497,6 +504,19 @@ class App:
 
     def tx_wpm(self):
         return self.eng.tx_wpm()
+
+    def _guard_toggled(self, save=True):
+        on = self.v_guard.get()
+        self.cfg['license_guard'] = on
+        if on:
+            self.lbl_guard.pack_forget()
+        else:
+            self.lbl_guard.config(text='GUARD OFF')
+            self.lbl_guard.pack(side='left', padx=(4, 0))
+        if save:
+            save_cfg(self.cfg)
+            self.set_status('License guard ' + ('ON - transmit is limited to your CW privileges.' if on else
+                            'OFF - you are responsible for staying inside your privileges.'), err=not on)
 
     def check_tx(self):
         """License guard. -> True if we may transmit here (engine emits 'blocked' otherwise)."""
@@ -1745,7 +1765,8 @@ QUICK_START = [
         'F2 CQ   F3 answer   F4 report   F5 73   F6 AGN?   F7 QRS (slower)   F8 your call.',
         'No F-keys (uConsole, small keyboards)? Ctrl+1 ... Ctrl+8 do the same as F1 ... F8.',
         'Esc stops sending. LOG (Ctrl+L) saves the QSO; NEW (Ctrl+N) starts the next one.',
-        'Nothing transmits until you press a key, and never outside your license class CW segments.',
+        'Nothing transmits until you press a key. The License guard checkbox (top right) keeps you inside your\n'
+        '    class\'s CW segments; untick it only if you know your privileges (a red GUARD OFF shows).',
     ]),
     ('NO RADIO YET?', [
         'Click SIM: practice stations call CQ and answer you through the speakers. Nothing goes on the air.',

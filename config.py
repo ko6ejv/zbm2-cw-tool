@@ -3,7 +3,7 @@ import json
 import os
 import sys
 
-__version__ = '3.2.1'
+__version__ = '3.2.2'
 
 HERE = os.path.dirname(os.path.abspath(sys.argv[0]))
 if getattr(sys, 'frozen', False):          # installed .exe: Program Files is read-only -> per-user folder
@@ -15,7 +15,7 @@ RES = getattr(sys, '_MEIPASS', HERE)   # bundled images when built as .exe
 DEFAULTS = {
     # station
     'call': '', 'name': '', 'qth': '', 'grid': '',
-    'license_class': 'Technician',
+    'license_class': 'Technician', 'license_guard': True,
     # rig control (CAT)
     'cat_backend': 'hamlib_launch',        # hamlib_launch | hamlib_existing | omnirig | none
     'hamlib_dir': '', 'rig_model': 1051, 'rig_model_name': 'Yaesu FTX-1',

@@ -516,6 +516,8 @@ class Engine:
             why = 'Set your callsign first (Setup Wizard) - nothing goes on the air without it.'
             self.emit('blocked', why)
             return False, why
+        if not self.cfg.get('license_guard', True):        # operator turned the band guard off
+            return True, ''
         ok, why = Q.cw_allowed(self.freq if self.rig_ok else 0, self.cfg.get('license_class', 'Technician'))
         if not ok:
             self.earcons.play('error')

@@ -8,6 +8,7 @@
   <img alt="Windows | Linux" src="docs/badges/platform.svg" height="22">
   <img alt="Python 3.10+" src="docs/badges/python.svg" height="22">
   <img alt="Neural decoder" src="docs/badges/decoder.svg" height="22">
+  <a href="#clockworkpi-uconsole-cm4--raspberry-pi"><img alt="uConsole CM4 ready" src="docs/badges/uconsole.svg" height="22"></a>
   <br>
   <a href="https://github.com/ko6ejv/zbm2-cw-tool/actions/workflows/ci.yml"><img alt="Tests" src="https://github.com/ko6ejv/zbm2-cw-tool/actions/workflows/ci.yml/badge.svg"></a>
 </p>
@@ -16,6 +17,7 @@
   <b><a href="https://github.com/ko6ejv/zbm2-cw-tool/releases/latest">Download</a></b> &nbsp;·&nbsp;
   <a href="#what-it-does">Features</a> &nbsp;·&nbsp;
   <a href="#install">Install</a> &nbsp;·&nbsp;
+  <a href="#clockworkpi-uconsole-cm4--raspberry-pi">uConsole</a> &nbsp;·&nbsp;
   <a href="#supported-setups-the-wizard-configures-these">Radios</a> &nbsp;·&nbsp;
   <a href="#staying-legal">Staying legal</a>
 </p>
@@ -66,6 +68,8 @@ Download **ZBM2-CW-Tool-Setup-x.y.z.exe** from [Releases](https://github.com/ko6
 A portable zip is also attached if you don't want to install.
 
 ### ClockworkPi uConsole (CM4) / Raspberry Pi
+<p align="center"><img src="docs/banner-uconsole.svg" alt="ZBM2 CW Tool - uConsole edition" width="100%"></p>
+
 A field CW station in your pocket: uConsole + DigiRig + FT-857D / FT-891 (or any radio below).
 
 <p align="center"><img src="docs/uconsole.png" alt="Compact layout at 1280x720" width="80%"></p>
@@ -135,7 +139,7 @@ The Rig Setup screen works like Winlink Express / VARA / WSJT-X:
 - **QRZ Logbook** API upload, and **LoTW** upload through your own TQSL certificate, plus confirmation download.
 
 ## Staying legal
-Nothing transmits without a keypress from you. AUTO CQ is something you turn on and supervise, so you stay the control operator. The app adds station ID for you and refuses to transmit outside your license class's CW segments when CAT is connected.
+Nothing transmits without a keypress from you. AUTO CQ is something you turn on and supervise, so you stay the control operator. The app adds station ID for you and refuses to transmit outside your license class's CW segments when CAT is connected. That **License guard** is a checkbox on the main screen (top right); turn it off and a red GUARD OFF marker stays up so you know you're on your own.
 
 ## Field use / headless
 Everything runs offline on the field PC; QRZ, HamQTH and LoTW are optional extras.
