@@ -79,6 +79,8 @@ class Engine:
     def __init__(self, cfg, emit):
         self.cfg = cfg
         self.emit = emit                     # emit(kind, payload) - called from engine threads
+        self._their_wpm = None               # read by the DSP thread from its first block
+        self.deep = None
         self.audio_q = queue.Queue(maxsize=200)
         self.stream = None
         self.decoder = None
