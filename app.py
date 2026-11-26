@@ -479,8 +479,23 @@ class App:
 
     def _refresh_station(self):
         c = self.cfg
-        self.lbl_station.config(text=f"{c['call']} ({c['license_class']}) | {c['grid']} | {c['rig_model_name']} | "
-                                     f"CAT: {c['cat_backend']} | key: {c['key_method']} | PTT: {c['ptt_method']}")
+        cat = {'hamlib_launch': 'Hamlib', 'hamlib_existing': 'rigctld', 'none': 'off'}.get(c['cat_backend'], c['cat_backend'])
+        if c['cat_backend'] != 'none' and c.get('cat_port'):
+            cat += ' ' + c['cat_port']
+        km = c['key_method']
+        if km == 'serial':
+            key = f"{c.get('key_line') or 'DTR'} {c.get('key_port') or '?'}"
+        else:
+            key = {'rigkeyer': "radio keyer", 'audio': 'audio tone'}.get(km, km)
+        pm = c['ptt_method']
+        if pm == 'VOX':
+            ptt = 'break-in' if km in ('serial', 'rigkeyer') else 'VOX'
+        elif pm in ('RTS', 'DTR'):
+            ptt = f"{pm} {c.get('ptt_port') or c.get('cat_port') or '?'}"
+        else:
+            ptt = pm
+        self.lbl_station.config(text=f"{c['call'] or 'NO CALL'} ({c['license_class']}) | {c['grid']} | {c['rig_model_name']} | "
+                                     f"CAT: {cat} | key: {key} | PTT: {ptt}")
 
     def set_status(self, text, err=False):
         self.status.config(text=(' !! ' if err else ' ') + text, bg=TX if err else ACC)
@@ -1258,7 +1273,7 @@ CAT_CHOICES = [('hamlib_launch', 'Hamlib - this app starts rigctld (pick radio +
 KEY_CHOICES = [('rigkeyer', "Radio's internal keyer via CAT (Hamlib)"),
                ('serial', 'Serial port line (DTR or RTS)'),
                ('audio', 'Audio tones into rig (DATA-U / USB mode)')]
-PTT_CHOICES = [('VOX', 'None - break-in / VOX'), ('CAT', 'CAT command'),
+PTT_CHOICES = [('VOX', 'None - radio break-in (CW) / VOX'), ('CAT', 'CAT command'),
                ('RTS', 'RTS line'), ('DTR', 'DTR line')]
 HS_CHOICES = [('Default', 'Default'), ('None', 'None'), ('Hardware', 'Hardware (RTS/CTS)'),
               ('XONXOFF', 'XON/XOFF')]
