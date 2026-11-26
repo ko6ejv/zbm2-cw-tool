@@ -72,7 +72,8 @@ def main():
     splash = tk.Frame(root, bg=BG)
     splash.place(relx=0.5, rely=0.45, anchor='center')
     try:
-        logo = tk.PhotoImage(file=os.path.join(RES, 'logo.png')).zoom(2)
+        big = os.path.join(RES, 'logo_big.png')
+        logo = tk.PhotoImage(file=big) if os.path.exists(big) else tk.PhotoImage(file=os.path.join(RES, 'logo.png')).zoom(2)
         tk.Label(splash, image=logo, bg=BG).pack(pady=(0, 20))
         splash.logo = logo
     except tk.TclError:

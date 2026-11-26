@@ -23,7 +23,7 @@ jobs:
       - name: Build app (PyInstaller, one folder)
         run: >
           pyinstaller --noconfirm --windowed --name "ZBM2 CW Tool" --icon icon.ico
-          --add-data "logo.png;." --add-data "icon.png;." --add-data "icon.ico;." --add-data "fonts;fonts" --add-data "models;models" --add-data "data/words.txt;data"
+          --add-data "logo.png;." --add-data "logo_big.png;." --add-data "icon.png;." --add-data "icon.ico;." --add-data "fonts;fonts" --add-data "models;models" --add-data "data/words.txt;data"
           --hidden-import app --hidden-import tab_chat --hidden-import tab_contest --hidden-import tab_practice --hidden-import tab_log --hidden-import simulator --hidden-import keyring.backends.Windows
           main.py
       - name: Version
