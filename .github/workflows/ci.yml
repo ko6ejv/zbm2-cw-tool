@@ -18,3 +18,18 @@ jobs:
       - run: pip install -r requirements.txt pytest pyflakes
       - run: python -m pyflakes .
       - run: python -m pytest -q tests/test_all.py
+      - run: python tests/bench_deepcw.py
+
+  # uConsole / Raspberry Pi family: ARM64. Runs the real installer, then tests + decoder speed.
+  arm64-uconsole:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install with install_uconsole.sh (from this checkout)
+        run: ZBM2_REPO="file://$GITHUB_WORKSPACE" ZBM2_DIR="$HOME/zbm2-cw-tool" bash install_uconsole.sh
+      - name: Tests + neural decoder speed on ARM64
+        working-directory: /home/runner/zbm2-cw-tool
+        run: |
+          .venv/bin/pip install -q pytest
+          .venv/bin/python -m pytest -q tests/test_all.py
+          .venv/bin/python tests/bench_deepcw.py

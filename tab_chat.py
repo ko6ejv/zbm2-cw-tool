@@ -125,6 +125,10 @@ class ChatTab:
         self.lbl_prev = tk.Label(parent, text='', bg=BG, fg=DIM, font=(UI, -16), anchor='w', justify='left',
                                  wraplength=1100)
         self.lbl_prev.pack(fill='x')
+        # keep the input rows when the window is short (uConsole): squeeze the chat log instead
+        self.lbl_prev.pack_configure(side='bottom', before=body)
+        inp.pack_configure(side='bottom', before=body)
+        self.qf.pack_configure(side='bottom', before=body)
         self.sys('Welcome to ZBM2 Online. Tune to a CW frequency (WHERE DO I GO?) and watch the room fill up.')
         for t, who, seg in app.eng.room_log[-30:]:         # what was said before this tab was opened
             self.bubble(who, seg)

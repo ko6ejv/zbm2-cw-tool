@@ -66,7 +66,7 @@ class LogTab:
         self.lbl_hint = tk.Label(parent, text='Tip: Ctrl/Shift-click to select several QSOs. '
                                               'Set up QRZ / LoTW in Rig Setup > Online.',
                                  bg=BG, fg=DIM, font=(UI, -16), anchor='w')
-        self.lbl_hint.pack(fill='x')
+        self.lbl_hint.pack(fill='x', side='bottom', before=self.tree)
         self.raw = {}
         self.refresh()
 

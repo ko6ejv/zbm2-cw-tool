@@ -65,6 +65,31 @@ Built for brand-new hams, especially **Technicians**, who have CW-only privilege
 Download **ZBM2-CW-Tool-Setup-x.y.z.exe** from [Releases](https://github.com/ko6ejv/zbm2-cw-tool/releases/latest), run it, and the setup wizard opens on first launch. Everything (Python, the decoder model) is bundled, so there's nothing else to install. The **HELP** button (top right) has a one-page quick start; hover over anything for a tip.
 A portable zip is also attached if you don't want to install.
 
+### ClockworkPi uConsole (CM4) / Raspberry Pi
+A field CW station in your pocket: uConsole + DigiRig + FT-857D / FT-891 (or any radio below).
+
+<p align="center"><img src="docs/uconsole.png" alt="Compact layout at 1280x720" width="80%"></p>
+
+On **Raspberry Pi OS 64-bit**, open a terminal and paste:
+```
+curl -fsSL https://raw.githubusercontent.com/ko6ejv/zbm2-cw-tool/main/install_uconsole.sh | bash
+```
+It installs everything (Python, the neural decoder, Hamlib, serial-port access) and adds **ZBM2 CW Tool** to the menu. Log out and back in once, plug in the radio, start the app; the Setup Wizard takes it from there. Run the same command again to update.
+
+- The screen switches to a **compact layout** automatically on 720-line screens (force it with `"layout": "compact"` in config.json).
+- No F-keys needed: **Ctrl+1 ... Ctrl+8** = F1 ... F8.
+- Tested on every change on GitHub's ARM64 machines (installer, tests, and the neural decoder at about 30x faster than real time). CM5 is next.
+
+**Radio hookup**
+| Radio | CAT | Audio | CW keying |
+|---|---|---|---|
+| Yaesu FT-857D | DigiRig to the CAT jack, Hamlib model FT-857, baud = menu 019 CAT RATE (4800 default) | DigiRig sound card to the DATA jack | DigiRig audio tones (USB / DATA mode) |
+| Yaesu FT-891 | Radio's USB, *Enhanced* COM port, Hamlib model FT-891 | DigiRig to the DATA jack (the FT-891 has no USB sound card) | DTR on the radio's *Standard* COM port (menu PC KEYING = DTR) |
+| Yaesu FTX-1 | Radio's USB, Enhanced port (needs Hamlib 4.7+: **Rig Setup > Update Hamlib**) | Radio's USB sound card | DTR on the Standard port (PC KEYING / RPTT = DTR) |
+
+### Updating Hamlib (any version of the app)
+**Rig Setup > Update Hamlib** downloads the newest official Hamlib from github.com/Hamlib, checks it against Hamlib's published SHA-256, and installs it in the app's own folder - no admin rights, your old Hamlib stays. On Windows that's a 3 MB download; on Linux / Raspberry Pi it is built from source (about 15 minutes on a CM4; needs `sudo apt install build-essential` once). From a terminal: `python hamlibupd.py`. The Setup Wizard offers the same thing as **Install Hamlib now** when no Hamlib is found. OmniRig users: OmniRig is still supported (Windows); update it from its own site, there's a button in Rig Setup.
+
 ### From source (Windows / Linux; macOS should work but is untested)
 ```
 # Windows

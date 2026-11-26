@@ -28,6 +28,13 @@ def find_hamlib_bin(hint=''):
     exe = 'rigctld.exe' if os.name == 'nt' else 'rigctld'
     if hint and os.path.isfile(os.path.join(hint, exe)):
         return hint
+    try:                                   # newest copy installed by Rig Setup > Update Hamlib
+        import hamlibupd
+        mine = hamlibupd.managed_bins()
+        if mine:
+            return mine[0]
+    except Exception:
+        pass
     w = shutil.which('rigctld')
     if w:
         return os.path.dirname(w)

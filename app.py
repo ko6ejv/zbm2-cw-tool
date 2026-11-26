@@ -121,8 +121,20 @@ class App:
         r = self.root
         r.title(f'ZBM2 CW Tool {__version__}')
         r.configure(bg=BG)
-        r.geometry('1320x900')
-        r.minsize(1150, 760)
+        # compact layout for small screens (uConsole 1280x720, netbooks): cfg layout = auto | compact | full
+        lay = self.cfg.get('layout', 'auto')
+        self.compact = lay == 'compact' or (lay == 'auto' and r.winfo_screenheight() <= 800)
+        C = self.compact
+        if C:
+            r.geometry(f'{min(1280, r.winfo_screenwidth())}x{min(720, r.winfo_screenheight()) - 40}+0+0')
+            r.minsize(800, 480)
+            try:
+                r.attributes('-zoomed', True)          # X11: fill the screen
+            except tk.TclError:
+                pass
+        else:
+            r.geometry('1320x900')
+            r.minsize(1150, 760)
         try:
             self._icon = tk.PhotoImage(file=os.path.join(RES, 'icon.png'))
             r.iconphoto(True, self._icon)
@@ -135,9 +147,11 @@ class App:
 
         # --- header ---
         hdr = tk.Frame(r, bg=BG)
-        hdr.pack(fill='x', padx=10, pady=(8, 4))
+        hdr.pack(fill='x', padx=10, pady=(4, 2) if C else (8, 4))
+        if C:
+            ttk.Style().configure('Big.TLabel', font=(UI, -30))
         try:
-            self._logo = tk.PhotoImage(file=os.path.join(RES, 'logo.png'))
+            self._logo = tk.PhotoImage(file=os.path.join(RES, 'logo_small.png' if C else 'logo.png'))
             tk.Label(hdr, image=self._logo, bg=BG).pack(side='left')
         except tk.TclError:
             pass
@@ -154,13 +168,15 @@ class App:
         ttk.Button(stats, text='HELP', command=lambda: HelpWindow(self.root)).grid(row=2, column=3, padx=2, pady=2)
         tframe = tk.Frame(hdr, bg=BG)
         tframe.pack(side='left', padx=10, fill='x', expand=True)
-        tk.Label(tframe, text=' ZBM2 CW TOOL ', bg=ACC, fg=BG, font=(PIX, -32)).pack(anchor='w', pady=(4, 6))
-        self.lbl_station = tk.Label(tframe, bg=BG, fg=DIM, font=(UI, -16), justify='left', wraplength=520)
+        tk.Label(tframe, text=' ZBM2 CW TOOL ', bg=ACC, fg=BG, font=(PIX, -18 if C else -32)).pack(
+            anchor='w', pady=(2, 2) if C else (4, 6))
+        self.lbl_station = tk.Label(tframe, bg=BG, fg=DIM, font=(UI, -13 if C else -16), justify='left',
+                                    wraplength=520)
         self.lbl_station.pack(anchor='w')
 
         # --- RX meter strip ---
         meter = tk.Frame(r, bg=PANEL)
-        meter.pack(fill='x', padx=10, pady=4)
+        meter.pack(fill='x', padx=10, pady=2 if C else 4)
         self.v_sidetone = tk.BooleanVar(value=self.cfg['sidetone'])
         self.v_plain_cb = tk.BooleanVar(value=self.cfg.get('plain_english', True))
         vt = tk.Frame(self._stats_frame, bg=BG)
@@ -177,12 +193,12 @@ class App:
         l_rx = tk.Label(meter, text='THEIR SPEED', bg=PANEL, fg=DIM, font=(UI, -16))
         l_rx.pack(side='left', padx=(10, 4))
         Tip(l_rx, HELP['rx_wpm'])
-        self.lbl_rxwpm = tk.Label(meter, text='--', bg=PANEL, fg=RX, font=(UI, -32), width=4)
+        self.lbl_rxwpm = tk.Label(meter, text='--', bg=PANEL, fg=RX, font=(UI, -22 if C else -32), width=4)
         self.lbl_rxwpm.pack(side='left')
         l_tx = tk.Label(meter, text='YOUR SPEED', bg=PANEL, fg=DIM, font=(UI, -16))
         l_tx.pack(side='left', padx=(16, 4))
         Tip(l_tx, HELP['tx_wpm'])
-        self.lbl_txwpm = tk.Label(meter, text='--', bg=PANEL, fg=TX, font=(UI, -32), width=4)
+        self.lbl_txwpm = tk.Label(meter, text='--', bg=PANEL, fg=TX, font=(UI, -22 if C else -32), width=4)
         self.lbl_txwpm.pack(side='left')
         self.v_match = tk.BooleanVar(value=self.cfg['match_wpm'])
         ttk.Checkbutton(meter, text='Match their speed', variable=self.v_match,
@@ -221,10 +237,10 @@ class App:
 
         # --- main area: spectrum + alert banner (shared) + tabs ---
         main = tk.Frame(r, bg=BG)
-        main.pack(fill='both', expand=True, padx=10, pady=4)
+        main.pack(fill='both', expand=True, padx=10, pady=2 if C else 4)
         specf = tk.Frame(main, bg=PANEL)
-        specf.pack(fill='x', pady=(0, 6))
-        self.spec = tk.Canvas(specf, height=80, bg='#000000', highlightthickness=0, cursor='crosshair')
+        specf.pack(fill='x', pady=(0, 3 if C else 6))
+        self.spec = tk.Canvas(specf, height=58 if C else 80, bg='#000000', highlightthickness=0, cursor='crosshair')
         self.spec.pack(side='left', fill='x', expand=True)
         self.spec.bind('<Button-1>', self._spec_click)
         lv = tk.Frame(specf, bg=PANEL)
@@ -251,6 +267,14 @@ class App:
         gf = tk.Frame(lv, bg=PANEL)             # level readout + software gain share one row
         gf.pack()
         self.lbl_lvl = tk.Label(gf, text='', bg=PANEL, fg=DIM, font=(UI, -16), width=6)
+        if C:   # two short rows instead of a tall column: SPAN / TONE / A  and  level / gain
+            rows = list(lv.pack_slaves())
+            for w_ in rows:
+                w_.pack_forget()
+            for i, w_ in enumerate(rows[:4]):
+                w_.grid(row=0, column=i, padx=2)
+            for i, w_ in enumerate(rows[4:]):
+                w_.grid(row=1, column=i, padx=2, columnspan=2 if i == 2 else 1)
         self.lbl_lvl.pack(side='left')
         tk.Label(gf, text='+', bg=PANEL, fg=DIM, font=(UI, -14)).pack(side='left')
         self.v_rxgain = tk.IntVar(value=int(self.cfg.get('rx_gain_db', 0)))
@@ -264,7 +288,7 @@ class App:
         self.flash = tk.Label(specf, text='', bg=ACC, fg=BG, font=(UI, -48), padx=14)
         # DOS alert banner (hidden until something happens)
         self.banner = tk.Frame(main, bg=ACC, highlightthickness=2, highlightbackground=ACC)
-        self.b_head = tk.Label(self.banner, text='', bg=ACC, fg=BG, font=(UI, -24), anchor='w', padx=8)
+        self.b_head = tk.Label(self.banner, text='', bg=ACC, fg=BG, font=(UI, -18 if C else -24), anchor='w', padx=8)
         self.b_head.pack(fill='x')
         self.b_def = tk.Label(self.banner, text='', bg=BG, fg=FG, font=(UI, -16), anchor='w', padx=8,
                               justify='left', wraplength=1100)
@@ -295,15 +319,15 @@ class App:
         self._caller_keys = None
         self.txt = tk.Text(left, bg='#000000', fg=RX, highlightthickness=2, highlightbackground=DIM,
                            highlightcolor=ACC, selectbackground=ACC, selectforeground=BG, insertbackground=FG, wrap='word',
-                           font=(UI, -24), relief='flat', padx=8, pady=6, height=6)
-        self.txt.pack(fill='both', expand=True)
+                           font=(UI, -20 if C else -24), relief='flat', padx=8, pady=6 if not C else 3,
+                           height=3 if C else 6)
         self.engf = tk.Frame(left, bg=BG)
         hdr_e = tk.Frame(self.engf, bg=BG)
         hdr_e.pack(fill='x')
         tk.Label(hdr_e, text=' PLAIN ENGLISH ', bg=ACC, fg=BG, font=(UI, -16)).pack(side='left')
         tk.Label(hdr_e, text='  what the shorthand means', bg=BG, fg=DIM, font=(UI, -16)).pack(side='left')
         self.ptxt = tk.Text(self.engf, bg='#000000', fg=FG, wrap='word', font=(UI, -16), relief='flat',
-                           height=5, padx=8, pady=4, highlightthickness=1, highlightbackground=DIM)
+                           height=2 if C else 5, padx=8, pady=4, highlightthickness=1, highlightbackground=DIM)
         self.ptxt.pack(fill='x')
         self.ptxt.tag_configure('them', foreground=RX)
         self.ptxt.tag_configure('me', foreground=TX)
@@ -311,15 +335,13 @@ class App:
         self.ptxt.bind('<Key>', lambda e: 'break')
         self.rx_seg = ''
         self.v_plain = tk.BooleanVar(value=self.cfg.get('plain_english', True))
-        if self.v_plain.get():
-            self.engf.pack(fill='x', pady=(6, 0))
+        self._left = left
         self.txt.tag_configure('tx', foreground=TX)
         self.txt.tag_configure('sys', foreground=DIM, font=(UI, -16))
         self.txt.bind('<Key>', lambda e: 'break' if e.keysym not in ('c', 'C') or not (e.state & 4) else None)
 
         # suggestion + send
         sug = tk.Frame(left, bg=PANEL)
-        sug.pack(fill='x', pady=(6, 0))
         l_next = tk.Label(sug, text='NEXT>', bg=PANEL, fg=ACC, font=(PIX, -16))
         l_next.pack(side='left', padx=8)
         Tip(l_next, HELP['next'])
@@ -334,10 +356,8 @@ class App:
 
         self.lbl_means = tk.Label(left, text='', bg=BG, fg=DIM, font=(UI, -16), anchor='w',
                                   justify='left', wraplength=1000)
-        self.lbl_means.pack(fill='x')
         self.v_sug.trace_add('write', lambda *_: self._update_means())
         macros = tk.Frame(left, bg=BG)
-        macros.pack(fill='x', pady=4)
         for i, (lbl, kind, hk) in enumerate([('CQ call all', 'cq', 'cq'), ('Answer', 'answer', 'answer'),
                                              ('Report RST', 'report', 'report'), ('73 bye', '73', '73'),
                                              ('AGN? repeat', 'agn', 'agn'), ('QRS slower', 'qrs', 'qrs'),
@@ -352,8 +372,8 @@ class App:
             v.bind('<Enter>', lambda e, w=v: w.config(bg=FG), add='+')
             v.bind('<Leave>', lambda e, w=v: w.config(bg=ACC), add='+')
             self.root.bind(f'<F{i + 2}>', lambda e, kk=kind: self.send_macro(kk))
+            self.root.bind(f'<Control-Key-{i + 2}>', lambda e, kk=kind: self.send_macro(kk))   # no-F-key keyboards
         free = tk.Frame(left, bg=BG)
-        free.pack(fill='x')
         tk.Label(free, text='TYPE+ENTER>', bg=BG, fg=DIM, font=(UI, -16)).pack(side='left')
         self.v_free = tk.StringVar()
         e = tk.Entry(free, textvariable=self.v_free, bg=PANEL, fg=FG, insertbackground=FG,
@@ -364,38 +384,62 @@ class App:
         e.bind('<KeyRelease>', lambda ev: self._preview_free(), add='+')
         Tip(e, 'Type what you want to say in plain CW shorthand. Enter sends it and adds the right '
                'ending (K / KN / BK / SK) and your callsign when needed. Shift+Enter keeps your turn going.')
+        # bottom rows first (side=bottom), so a short window squeezes the copy pane, not the controls
+        free.pack(side='bottom', fill='x')
+        macros.pack(side='bottom', fill='x', pady=2 if C else 4)
+        self.lbl_means.pack(side='bottom', fill='x')
+        sug.pack(side='bottom', fill='x', pady=(3 if C else 6, 0))
+        if self.v_plain.get():
+            self.engf.pack(side='bottom', fill='x', pady=(3 if C else 6, 0))
+        self.txt.pack(fill='both', expand=True)
 
         # --- right panel: the other station ---
         tk.Label(right, text=' THEM ', bg=ACC, fg=BG, font=(PIX, -16)).pack(anchor='w', pady=(0, 4))
         self.fields = {}
-        for key, lbl in [('call', 'Their callsign'), ('rst_rcvd', 'Your report from them (RST)'),
-                         ('rst_sent', 'Your report for them (RST)'), ('name', 'Their name'),
-                         ('qth', 'Their location (QTH)'), ('grid', 'Grid square (map)')]:
-            lab = tk.Label(right, text=lbl + ' [?]', bg=BG, fg=DIM, font=(UI, -16), cursor='question_arrow')
-            lab.pack(anchor='w', pady=(2, 0))
+        short = {'call': 'Call', 'rst_rcvd': 'RST rcvd', 'rst_sent': 'RST sent', 'name': 'Name',
+                 'qth': 'QTH', 'grid': 'Grid'}
+        if C:                                   # label beside the field: half the height
+            fgrid = tk.Frame(right, bg=BG)
+            fgrid.pack(fill='x')
+            fgrid.columnconfigure(1, weight=1)
+        for row, (key, lbl) in enumerate([('call', 'Their callsign'), ('rst_rcvd', 'Your report from them (RST)'),
+                                          ('rst_sent', 'Your report for them (RST)'), ('name', 'Their name'),
+                                          ('qth', 'Their location (QTH)'), ('grid', 'Grid square (map)')]):
+            host = fgrid if C else right
+            lab = tk.Label(host, text=short[key] if C else lbl + ' [?]', bg=BG, fg=DIM, font=(UI, -16),
+                           cursor='question_arrow', anchor='w')
             Tip(lab, HELP[key])
             v = tk.StringVar()
-            ent = tk.Entry(right, textvariable=v, bg=PANEL, fg=FG, insertbackground=FG,
-                           font=(UI, -24 if key == 'call' else -16), relief='flat', width=18)
-            ent.pack(fill='x', ipady=0)
+            ent = tk.Entry(host, textvariable=v, bg=PANEL, fg=FG, insertbackground=FG,
+                           font=(UI, (-20 if C else -24) if key == 'call' else -16), relief='flat',
+                           width=12 if C else 18)
+            if C:
+                lab.grid(row=row, column=0, sticky='w', padx=(0, 4), pady=1)
+                ent.grid(row=row, column=1, sticky='ew', pady=1)
+            else:
+                lab.pack(anchor='w', pady=(2, 0))
+                ent.pack(fill='x', ipady=0)
             ent.bind('<KeyRelease>', lambda ev, k=key: self.user_edit.add(k))
             ent.bind('<FocusOut>', lambda ev, k=key: self._field_edited(k))
             ent.bind('<Return>', lambda ev, k=key: self._field_edited(k))
             self.fields[key] = v
         self.lbl_dist = tk.Label(right, text='', bg=BG, fg=FG, font=(UI, -16), justify='left', wraplength=230)
-        self.lbl_dist.pack(anchor='w', pady=(8, 0))
+        self.lbl_dist.pack(anchor='w', pady=(2 if C else 8, 0))
         self.lbl_wkd = tk.Label(right, text='', bg=BG, fg=ACC, font=(UI, -16), justify='left', wraplength=230)
         self.lbl_wkd.pack(anchor='w')
         self.lbl_state = tk.Label(right, text='', bg=BG, fg=DIM, font=(UI, -16))
-        self.lbl_state.pack(anchor='w', pady=(8, 0))
+        self.lbl_state.pack(anchor='w', pady=(2 if C else 8, 0))
         bb = tk.Frame(right, bg=BG)
-        bb.pack(fill='x', pady=6)
-        for i, (t_, cmd) in enumerate((('LOG ^L', self.log_qso), ('NEW ^N', self.new_qso),
+        bb.pack(fill='x', pady=3 if C else 6)
+        per_row = 4 if C else 2
+        for i, (t_, cmd) in enumerate((('LOG' if C else 'LOG ^L', self.log_qso),
+                                       ('NEW' if C else 'NEW ^N', self.new_qso),
                                        ('CLEAR', self._clear_all),
-                                       ('SAVE AUDIO', lambda: self.save_audio(self.qso.call)))):
-            ttk.Button(bb, text=t_, command=cmd).grid(row=i // 2, column=i % 2, sticky='ew', padx=1, pady=1)
-        bb.columnconfigure(0, weight=1)
-        bb.columnconfigure(1, weight=1)
+                                       ('AUDIO' if C else 'SAVE AUDIO', lambda: self.save_audio(self.qso.call)))):
+            b_ = ttk.Button(bb, text=t_, command=cmd, width=5 if C else None)
+            b_.grid(row=i // per_row, column=i % per_row, sticky='ew', padx=1, pady=1)
+        for col in range(per_row):
+            bb.columnconfigure(col, weight=1)
 
         self.lbl_lookup = tk.Label(right, text='', bg=BG, fg=DIM, font=(UI, -16), justify='left', wraplength=230)
         self.lbl_lookup.pack(anchor='w', pady=(6, 0))
@@ -412,6 +456,7 @@ class App:
         self.status.pack(fill='x', side='bottom', before=main)
 
         r.bind('<F1>', lambda e: self._f1())
+        r.bind('<Control-Key-1>', lambda e: self._f1())
         r.bind('<Escape>', lambda e: self.stop_tx())
         r.bind('<Control-l>', lambda e: self.log_qso())
         r.bind('<Control-n>', lambda e: self.new_qso())
@@ -931,7 +976,7 @@ class App:
 
     def _draw_spec(self, fr, db, rms, pk):
         c = self.spec
-        W, H = max(c.winfo_width(), 100), 80
+        W, H = max(c.winfo_width(), 100), int(c['height'])
         span = int(self.v_span.get() or 600)
         center = int(round(self.v_tone.get() / 50.0)) * 50
         lo, hi = center - span / 2, center + span / 2
@@ -1043,7 +1088,7 @@ class App:
         on = self.v_plain_cb.get()
         self.v_plain.set(on)
         if on:
-            self.engf.pack(fill='x', pady=(6, 0), after=self.txt)
+            self.engf.pack(side='bottom', fill='x', pady=(3 if self.compact else 6, 0), before=self.txt)
         else:
             self.engf.pack_forget()
         self.lbl_means.config(text='' if not on else self.lbl_means.cget('text'))
@@ -1242,6 +1287,15 @@ class SettingsDialog:
                  relief='flat', width=40).pack(side='left', ipady=2)
         ttk.Button(r, text='Browse', command=self._browse).pack(side='left', padx=4)
         ttk.Button(r, text='Reload radios', command=self._load_models).pack(side='left')
+        r = self._row(f, 'Hamlib version')
+        self.lbl_hlver = tk.Label(r, text='', bg=BG, fg=FG, font=(UI, -16))
+        self.lbl_hlver.pack(side='left')
+        self.btn_hlupd = ttk.Button(r, text='Update Hamlib', command=self._update_hamlib)
+        self.btn_hlupd.pack(side='left', padx=8)
+        Tip(self.btn_hlupd, 'Downloads the newest Hamlib from github.com/Hamlib (checksum-verified) into this '
+                            "app's own folder. Newer radios like the Yaesu FTX-1 need Hamlib 4.7 or later. "
+                            'Your old Hamlib is left in place.')
+        self.w.after(200, self._show_hlver)
         r = self._row(f, 'Search radios')
         self.v_search = tk.StringVar()
         es = tk.Entry(r, textvariable=self.v_search, bg=PANEL, fg=FG, insertbackground=FG,
@@ -1283,6 +1337,11 @@ class SettingsDialog:
         # omnirig
         f = self.f_om
         self._combo(f, 'omnirig_rig', 'OmniRig rig', ['1', '2'], str(self.c['omnirig_rig']))
+        r = self._row(f, 'OmniRig program')
+        ttk.Button(r, text='Get / update OmniRig', command=lambda: __import__('webbrowser').open(
+            'https://www.dxatlas.com/omnirig/')).pack(side='left')
+        tk.Label(r, text='  (Windows only; its installer needs admin rights, so it updates itself outside this app)',
+                 bg=BG, fg=DIM, font=(UI, -14)).pack(side='left')
         tk.Label(f, text='Configure the radio model + COM port inside OmniRig itself.\n'
                          'OmniRig cannot send CW text - use Serial or Audio keying.',
                  bg=BG, fg=DIM, justify='left').pack(anchor='w', padx=10, pady=6)
@@ -1463,6 +1522,37 @@ class SettingsDialog:
     @staticmethod
     def _strip_port(var):
         var.set(var.get().split(' ')[0])
+
+    def _show_hlver(self):
+        import hamlibupd
+        d = self.v['hamlib_dir'].get()
+        v = hamlibupd.installed_version(d) if d else None
+        self.lbl_hlver.config(text=v or 'not found', fg=FG if v else TX)
+
+    def _update_hamlib(self):
+        import threading
+        import hamlibupd
+        self.btn_hlupd.state(['disabled'])
+        say = lambda m: self.w.after(0, lambda: self.lbl_hlver.config(text=m[:70], fg=ACC))
+
+        def work():
+            try:
+                ver, bindir = hamlibupd.update(say)
+            except Exception as e:
+                msg = str(e)
+                self.w.after(0, lambda: (self.btn_hlupd.state(['!disabled']), self._show_hlver(),
+                                         messagebox.showerror('Update Hamlib', msg, parent=self.w)))
+                return
+
+            def done():
+                self.btn_hlupd.state(['!disabled'])
+                self.v['hamlib_dir'].set(bindir)
+                self._load_models()
+                self._show_hlver()
+                messagebox.showinfo('Update Hamlib', f'Hamlib {ver} is installed and selected.\n'
+                                    'Press Save; the radio link restarts with the new version.', parent=self.w)
+            self.w.after(0, done)
+        threading.Thread(target=work, daemon=True, name='hamlib-update').start()
 
     def _browse(self):
         from tkinter import filedialog
@@ -1653,6 +1743,7 @@ QUICK_START = [
     ('MAKING A CONTACT', [
         'The NEXT box writes your reply for you. F1 sends it at their speed (Match their speed).',
         'F2 CQ   F3 answer   F4 report   F5 73   F6 AGN?   F7 QRS (slower)   F8 your call.',
+        'No F-keys (uConsole, small keyboards)? Ctrl+1 ... Ctrl+8 do the same as F1 ... F8.',
         'Esc stops sending. LOG (Ctrl+L) saves the QSO; NEW (Ctrl+N) starts the next one.',
         'Nothing transmits until you press a key, and never outside your license class CW segments.',
     ]),
@@ -1768,6 +1859,22 @@ class SetupWizard:
                 val = int(val)
             self.c[k] = val
 
+    def _install_hamlib(self, btn):
+        import threading
+        import hamlibupd
+        btn.state(['disabled'])
+        say = lambda m: self.w.after(0, lambda: self.lbl_hl.config(text=m))
+
+        def work():
+            try:
+                _v, bindir = hamlibupd.update(say)
+            except Exception as e:
+                msg = str(e)
+                self.w.after(0, lambda: (btn.state(['!disabled']), self.lbl_hl.config(text=msg, fg=TX)))
+                return
+            self.w.after(0, lambda: (self.c.__setitem__('hamlib_dir', bindir), self._sync(), self.show()))
+        threading.Thread(target=work, daemon=True, name='hamlib-update').start()
+
     def show(self):
         self._polling = False
         for wdg in self.body.winfo_children():
@@ -1875,8 +1982,12 @@ class SetupWizard:
             bindir = RC.find_hamlib_bin(self.c.get('hamlib_dir', ''))
             if not bindir:
                 self.p('[!!] Hamlib isn\'t installed. It\'s the free radio-control program most ham software uses. '
-                       'Download the Windows installer ("hamlib-w64-...exe") from github.com/Hamlib/Hamlib/releases, '
-                       'install it, then press Refresh.', TX, 11)
+                       'Press Install Hamlib now (downloads the official release, about 3 MB on Windows; on Linux '
+                       'it is built, about 15 minutes on a Raspberry Pi).', TX, 11)
+                self.lbl_hl = tk.Label(self.body, text='', bg=BG, fg=ACC, font=(UI, -16), anchor='w')
+                bi = ttk.Button(self.body, text='Install Hamlib now', command=lambda: self._install_hamlib(bi))
+                bi.pack(anchor='w', pady=4)
+                self.lbl_hl.pack(anchor='w')
             else:
                 self.c['hamlib_dir'] = bindir
                 models = RC.list_hamlib_models(bindir)
