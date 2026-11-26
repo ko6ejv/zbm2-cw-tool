@@ -1,3 +1,7 @@
+## ZBM2 CW Tool 3.4.3
+
+- TUNE fix: raw CAT tuner commands go over rigctld's plain protocol (the extended one never answers W).
+
 ## ZBM2 CW Tool 3.4.2
 
 - Live dit/dah strip drawn on the spectrum (transparent), letters spelled out above.

@@ -492,12 +492,17 @@ class Engine:
             return False, 'no CAT tuner command (needs Hamlib CAT)'
         from radios import RADIOS
         preset = RADIOS.get(self.cfg.get('radio', ''), {}).get('tuner')
-        for c in ([preset] if preset else []) + ['G TUNE']:
+        if preset and hasattr(rig, 'raw'):                 # radio-specific raw CAT (e.g. FTX-1 AC103;)
             try:
-                if rig.cmd(c)[1] == 0:
+                if 'RPRT -' not in rig.raw(preset):
                     return True, 'Tuning...'
             except Exception:
                 pass
+        try:
+            if rig.cmd('G TUNE')[1] == 0:
+                return True, 'Tuning...'
+        except Exception:
+            pass
         return False, 'no CAT tuner'
 
     def tune_carrier(self, seconds=5):

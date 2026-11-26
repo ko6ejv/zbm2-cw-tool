@@ -194,6 +194,20 @@ class HamlibRig(NoRig):
                 self.proc.kill()
         self.proc = None
 
+    def raw(self, line, wait=0.15, timeout=1.5):
+        """Plain-protocol command on its own short connection. Raw CAT (W / w) never answers in the
+        extended '+' protocol cmd() uses, so it would hang the main link. -> reply text ('' if none)"""
+        s = socket.create_connection(self.addr, timeout=timeout)
+        try:
+            s.sendall((line + '\n').encode())
+            time.sleep(wait)
+            try:
+                return s.recv(1024).decode(errors='replace').strip()
+            except socket.timeout:
+                return ''
+        finally:
+            s.close()
+
     def cmd(self, line):
         with self.lock:
             if not self.sock:
