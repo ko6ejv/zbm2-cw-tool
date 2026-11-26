@@ -22,6 +22,8 @@
 
 # ZBM2 CW Tool
 
+<p align="center"><b>CW for people who can't copy CW yet.<br>Putting competent operators on the net.</b></p>
+
 > **ZBM2** *(Z-code): "Place a competent operator on the net."* This app is the competent operator until you are.
 
 **CW for people who can't copy CW yet.** It decodes Morse from your radio, translates the shorthand into plain English, matches the other operator's speed, and sends your replies for you. Along the way it teaches you the code by ear.
