@@ -128,6 +128,7 @@ class Engine:
             threading.Thread(target=self._dsp_loop, daemon=True).start()
             threading.Thread(target=self._rig_loop, daemon=True).start()
             threading.Thread(target=self._cond_loop, daemon=True).start()
+        self._start_rbn()
         self.start_audio()
         threading.Timer(1.2, lambda: self.earcons.play('startup')).start()
 
@@ -162,6 +163,8 @@ class Engine:
         self.gt = GridTrackerLink(c['gt_host'], c['gt_port'], c['gt_enable'])
         my = c['call'].upper()
         self.qso.my_call = self.ender.my = self.room.my = my
+        if self._threads:
+            self._start_rbn()
         self.lookup = ON.Lookup(c)
         self.lookups_done = {}
         e = self.earcons
@@ -498,6 +501,30 @@ class Engine:
                 time.sleep(1800)
             except Exception:
                 time.sleep(300)
+
+    # ---- live CW activity (Reverse Beacon Network) ----
+    def _start_rbn(self):
+        call = str(self.cfg.get('call', '')).strip().upper()
+        old = getattr(self, 'rbn', None)
+        if old is not None and (old.call == call and self.cfg.get('rbn_enable', True)):
+            return
+        if old is not None:
+            old.stop()
+        self.rbn = None
+        if call and self.cfg.get('rbn_enable', True):
+            from rbn import RBN
+            self.rbn = RBN(call, on_update=lambda r: self.emit('rbn', r.counts())).start()
+
+    def qsy_freq(self, hz):
+        """Tune the radio to a spot (CAT). -> Hz"""
+        if self.tx.busy.is_set():
+            raise RuntimeError('not while transmitting')
+        if type(self.rig) is RC.NoRig:
+            raise RuntimeError('no CAT connection')
+        if not self.rig.set_freq(int(hz)):
+            raise RuntimeError(f'radio refused {hz / 1e6:.4f} MHz')
+        self.freq = int(hz)
+        return int(hz)
 
     # ---- quick band change + antenna tuner (CAT) ----
     def qsy_band(self, band):

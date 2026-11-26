@@ -269,3 +269,17 @@ def test_deepcw_measures_their_speed():
         for i in range(0, len(x), 1024):
             d.process(x[i:i + 1024], tone=700)
         assert d.wpm is not None and abs(d.wpm - wpm) < 0.08 * wpm, (wpm, d.wpm)
+
+
+def test_rbn_spots_and_region():
+    import rbn
+    assert rbn.region_of('KO6EJV') == 'NA' and rbn.region_of('VE6WZ') == 'NA' and rbn.region_of('F4GOU') == 'DX'
+    r = rbn.RBN('KO6EJV')
+    lines = ['DX de K5TR-1-#: 10115.20  N5EEI          CW    10 dB  22 WPM  CQ      2001Z',
+             'DX de F4GOU-#:   3564.00  IZ1CQD         CW    23 dB  21 WPM  CQ      2001Z',
+             'DX de W3OA-#:    7007.90  HA8RC          CW     4 dB  22 WPM  CQ      2001Z',
+             'DX de KM3T-2-#: 14080.0   K1ABC          RTTY  20 dB  45 BPS  CQ      2001Z',
+             'junk']
+    assert [r.feed(x) for x in lines] == [True, True, True, False, False]
+    assert r.counts() == {'30M': 1, '40M': 1} and r.counts(near_only=False)['80M'] == 1
+    assert r.on_band('40M')[0]['call'] == 'HA8RC' and r.counts(now=1e12) == {}

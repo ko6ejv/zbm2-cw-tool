@@ -38,7 +38,7 @@ DEFAULTS = {
     'match_wpm': True, 'wpm_offset': 0, 'manual_wpm': 18, 'min_wpm': 8, 'max_wpm': 35,
     # earcons (Morse UI sounds)
     'neural_decoder': True, 'neural_width_hz': 250,
-    'update_check': True,
+    'update_check': True, 'rbn_enable': True,
     'earcons_on': True, 'earcons_startup_only': True, 'earcon_pitch': 800, 'earcon_vol': 0.25, 'earcon_wpm': 22, 'earcon_speak': False,
     # chat profile (rag-chew quick-fills)
     'chat_rig': '', 'chat_ant': '', 'chat_pwr': '100W', 'chat_age': '', 'chat_lic': '',

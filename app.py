@@ -168,11 +168,15 @@ class App:
         self.cb_band = ttk.Combobox(fr0, textvariable=self.v_band, values=list(BAND_CW), width=5,
                                     state='readonly')
         self.cb_band.pack(side='left', padx=(0, 4))
-        self.cb_band.bind('<<ComboboxSelected>>', lambda e: self._qsy_band(self.v_band.get()))
+        self.cb_band.bind('<<ComboboxSelected>>', lambda e: self._qsy_band(self.v_band.get().split()[0]))
         Tip(self.cb_band, 'Change band (CAT). Goes back to where you last were on that band, '
                           'else a common CW frequency.')
         b_tune = ttk.Button(fr0, text='TUNE', width=5, command=self._tune)
-        b_tune.pack(side='left', padx=(0, 8))
+        b_tune.pack(side='left', padx=(0, 4))
+        b_spots = ttk.Button(fr0, text='SPOTS', width=6, command=lambda: SpotsWindow(self))
+        b_spots.pack(side='left', padx=(0, 8))
+        Tip(b_spots, 'Who is on CW right now (Reverse Beacon Network skimmers). Double-click one to tune to it. '
+                     'The numbers in the BAND list are stations heard in the last 10 minutes near you.')
         Tip(b_tune, "Start the radio's antenna tuner (built-in or external ATU) by CAT. Radios without a "
                     'CAT tuner command can send a short carrier for an automatic tuner (LDG etc.).')
         self.lbl_freq = ttk.Label(fr0, text='--.---.---', style='Big.TLabel')
@@ -1162,6 +1166,9 @@ class App:
             self.morse.rx_text(*val)
         elif kind == 'bandcond':
             self._show_cond(val)
+        elif kind == 'rbn':
+            self._rbn_counts = val
+            self.cb_band.config(values=[f'{b}  {val[b]}' if val.get(b) else b for b in BAND_CW])
         elif kind == 'lookup':
             self._apply_lookup(*val)
         elif kind == 'status':
@@ -1455,6 +1462,83 @@ HS_CHOICES = [('Default', 'Default'), ('None', 'None'), ('Hardware', 'Hardware (
               ('XONXOFF', 'XON/XOFF')]
 
 
+class SpotsWindow:
+    """CW stations the Reverse Beacon Network heard on a band in the last 10 minutes.
+    Double-click (or Enter) tunes the radio to one."""
+
+    def __init__(self, app, band=None):
+        self.app = app
+        w = self.w = tk.Toplevel(app.root)
+        w.title('CW spots - Reverse Beacon Network')
+        w.configure(bg=BG)
+        w.geometry('560x420' if not app.compact else '520x380')
+        top = tk.Frame(w, bg=BG)
+        top.pack(fill='x', padx=8, pady=6)
+        cur = Q.band_for(app.eng.freq) if app.eng.freq else ''
+        self.v_band = tk.StringVar(value=band or (cur if cur in BAND_CW else '40M'))
+        tk.Label(top, text='Band', bg=BG, fg=FG, font=(UI, -16)).pack(side='left')
+        cb = ttk.Combobox(top, textvariable=self.v_band, values=list(BAND_CW), width=5, state='readonly')
+        cb.pack(side='left', padx=6)
+        cb.bind('<<ComboboxSelected>>', lambda e: self.refresh())
+        self.v_all = tk.BooleanVar(value=False)
+        ttk.Checkbutton(top, text='Heard anywhere (not just near me)', variable=self.v_all,
+                        command=self.refresh).pack(side='left', padx=8)
+        self.lbl = tk.Label(w, text='', bg=BG, fg=DIM, font=(UI, -14), anchor='w')
+        self.lbl.pack(fill='x', padx=8)
+        cols = ('call', 'khz', 'wpm', 'db', 'age', 'what')
+        self.tv = ttk.Treeview(w, columns=cols, show='headings', height=14)
+        for c, t, wd in zip(cols, ('Call', 'kHz', 'WPM', 'dB', 'Age', ''), (110, 90, 55, 50, 60, 70)):
+            self.tv.heading(c, text=t)
+            self.tv.column(c, width=wd, anchor='w')
+        self.tv.pack(fill='both', expand=True, padx=8, pady=4)
+        self.tv.bind('<Double-1>', lambda e: self.tune())
+        self.tv.bind('<Return>', lambda e: self.tune())
+        bar = tk.Frame(w, bg=BG)
+        bar.pack(fill='x', pady=6)
+        ttk.Button(bar, text='Tune to it', command=self.tune).pack(side='left', padx=8)
+        ttk.Button(bar, text='Close', command=w.destroy).pack(side='right', padx=8)
+        self._rows = {}
+        self.refresh()
+
+    def refresh(self):
+        if not self.w.winfo_exists():
+            return
+        import time as _t
+        r = getattr(self.app.eng, 'rbn', None)
+        self.tv.delete(*self.tv.get_children())
+        self._rows = {}
+        if r is None:
+            self.lbl.config(text='Off - set your callsign and turn on "Live CW activity" in Rig Setup.')
+        else:
+            sp = [s for s in r.on_band(self.v_band.get()) if s['near'] or self.v_all.get()]
+            now = _t.time()
+            for s in sp[:200]:
+                iid = self.tv.insert('', 'end', values=(s['call'], f"{s['hz'] / 1000:.1f}", s['wpm'], s['snr'],
+                                                        f"{int((now - s['t']) // 60)} min", s['kind']))
+                self._rows[iid] = s
+            state = 'connected' if r.connected else 'connecting...'
+            self.lbl.config(text=f'{len(sp)} stations on {self.v_band.get()} in the last 10 min '
+                                 f'({state}). Double-click to tune.')
+        self.w.after(15000, self.refresh)
+
+    def tune(self):
+        sel = self.tv.selection()
+        if not sel or sel[0] not in self._rows:
+            return
+        s = self._rows[sel[0]]
+        app = self.app
+
+        def job():
+            try:
+                hz = app.eng.qsy_freq(s['hz'])
+                app._ui(lambda: app.set_status(f"{s['call']}: {hz / 1e6:.4f} MHz - listen, then click it on the "
+                                               'spectrum if the tone is off'))
+            except Exception as e:
+                m = f'Tune: {e}'
+                app._ui(lambda: app.set_status(m, err=True))
+        threading.Thread(target=job, daemon=True).start()
+
+
 def _lbl(choices, val):
     return dict(choices).get(val, choices[0][1])
 
@@ -1637,6 +1721,7 @@ class SettingsDialog:
         t = self.t_snd
         self._check(t, 'earcons_on', 'Morse earcons (UI sounds are real CW)')
         self._check(t, 'earcons_startup_only', 'Only the ZBM2 startup sound')
+        self._check(t, 'rbn_enable', 'Live CW activity from the Reverse Beacon Network (logs in with your call)')
         self._check(t, 'update_check', 'Tell me when a new version is out (checks GitHub at startup)')
         self._entry(t, 'earcon_pitch', 'Earcon pitch Hz (differs from RX)', width=6)
         self._entry(t, 'earcon_wpm', 'Earcon character speed WPM', width=6)
@@ -1886,7 +1971,7 @@ class SettingsDialog:
         c['min_wpm'], c['max_wpm'] = int(g('min_wpm')), int(g('max_wpm'))
         c['gt_enable'] = bool(g('gt_enable'))
         c['gt_port'] = int(g('gt_port'))
-        for k in ('update_check', 'earcons_on', 'earcons_startup_only', 'earcon_speak', 'rec_autosave', 'auto_lookup', 'auto_qrz_upload',
+        for k in ('rbn_enable', 'update_check', 'earcons_on', 'earcons_startup_only', 'earcon_speak', 'rec_autosave', 'auto_lookup', 'auto_qrz_upload',
                   'auto_lotw_upload'):
             c[k] = bool(g(k))
         c['earcon_pitch'], c['earcon_wpm'] = int(g('earcon_pitch')), int(g('earcon_wpm'))

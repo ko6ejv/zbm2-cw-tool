@@ -55,7 +55,7 @@ def app(request, tmp_path, monkeypatch):
     import config
     cfgp = tmp_path / 'config.json'
     json.dump({'setup_done': True, 'call': 'KO6EJV', 'license_class': 'General', 'cat_backend': 'none',
-               'update_check': False, 'layout': request.param, 'gt_enable': False,
+               'update_check': False, 'rbn_enable': False, 'layout': request.param, 'gt_enable': False,
                'data_dir': str(tmp_path / 'data'), 'log_path': str(tmp_path / 'log.adi')}, open(cfgp, 'w'))
     monkeypatch.setattr(config, 'CFG_PATH', str(cfgp))
     import app as A
@@ -162,3 +162,26 @@ def test_threads_survive(app):
     pump(app.root, 0.5)
     names = {t.name for t in threading.enumerate()}
     assert threading.main_thread().is_alive() and len(names) > 1
+
+
+def test_spots_window_and_band_counts(app):
+    import app as A
+    import rbn
+    a, root = app, app.root
+    r = rbn.RBN('KO6EJV')
+    r.feed('DX de W3OA-#:    7007.90  HA8RC          CW     4 dB  22 WPM  CQ      2001Z')
+    a.eng.rbn = r
+    a.ui_q.put(('rbn', r.counts()))
+    tuned = []
+    a.eng.qsy_freq = lambda hz: tuned.append(hz) or hz
+    w = A.SpotsWindow(a, band='40M')
+    pump(root, 0.8)
+    rows = w.tv.get_children()
+    assert len(rows) == 1
+    w.tv.selection_set(rows[0])
+    w.tune()
+    pump(root, 0.5)
+    assert tuned == [7007900]
+    assert any('40M  1' == v for v in a.cb_band.cget('values'))
+    w.w.destroy()
+    assert not a._errors, a._errors
