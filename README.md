@@ -36,7 +36,7 @@ Built for brand-new hams, especially **Technicians**, who have CW-only privilege
 ## Install
 
 ### Windows
-Download **ZBM2-CW-Tool-Setup-x.y.z.exe** from [Releases](../../releases), run it, and the setup wizard opens on first launch.
+Download **ZBM2-CW-Tool-Setup-x.y.z.exe** from [Releases](../../releases/latest), run it, and the setup wizard opens on first launch. Everything (Python, the decoder model) is bundled, so there's nothing else to install. The **HELP** button (top right) has a one-page quick start; hover over anything for a tip.
 A portable zip is also attached if you don't want to install.
 
 ### From source (Windows / Linux; macOS should work but is untested)

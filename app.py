@@ -151,6 +151,7 @@ class App:
         ttk.Button(stats, text='Setup Wizard', command=lambda: SetupWizard(self)).grid(row=2, column=0, padx=2, pady=2)
         ttk.Button(stats, text='Set rig mode', command=self.set_cw_mode).grid(row=2, column=1, padx=2, pady=2)
         ttk.Button(stats, text='Rig Setup', command=self.open_settings).grid(row=2, column=2, padx=2, pady=2)
+        ttk.Button(stats, text='HELP', command=lambda: HelpWindow(self.root)).grid(row=2, column=3, padx=2, pady=2)
         tframe = tk.Frame(hdr, bg=BG)
         tframe.pack(side='left', padx=10, fill='x', expand=True)
         tk.Label(tframe, text=' ZBM2 CW TOOL ', bg=ACC, fg=BG, font=(PIX, -32)).pack(anchor='w', pady=(4, 6))
@@ -1635,6 +1636,62 @@ class SettingsDialog:
     def cancel(self):
         self.app._apply_tx_backend()     # restore whatever Test CAT closed
         self.w.destroy()
+
+
+QUICK_START = [
+    ('FIRST TIME', [
+        'Setup Wizard (top right) walks you through: your call, radio, COM ports, audio, keying.',
+        'Radio in CW mode, 500 Hz filter, AGC FAST, DNF / NB / DNR off. Tune your antenna for the band.',
+        'Turn the radio audio up until the RX level bar sits in the middle (not CLIP).',
+    ]),
+    ('COPYING A STATION', [
+        'Find CW on the band (e.g. 7.030-7.060, 14.030-14.060). The A box auto-picks the strongest signal.',
+        'Or click a signal on the spectrum to lock onto it. Text prints about 2 s behind the audio.',
+        'PLAIN ENGLISH under the copy says what the shorthand means. The THEM panel fills in call, RST, name, QTH.',
+        'CLEAR wipes the copy, plain English and ON FREQ list.',
+    ]),
+    ('MAKING A CONTACT', [
+        'The NEXT box writes your reply for you. F1 sends it at their speed (Match their speed).',
+        'F2 CQ   F3 answer   F4 report   F5 73   F6 AGN?   F7 QRS (slower)   F8 your call.',
+        'Esc stops sending. LOG (Ctrl+L) saves the QSO; NEW (Ctrl+N) starts the next one.',
+        'Nothing transmits until you press a key, and never outside your license class CW segments.',
+    ]),
+    ('NO RADIO YET?', [
+        'Click SIM: practice stations call CQ and answer you through the speakers. Nothing goes on the air.',
+        'PRACTICE tab: key it yourself and get your fist graded.',
+    ]),
+    ('IF SOMETHING IS WRONG', [
+        'Nothing decodes: check the RX level bar, the tone box, and that the radio is in CW mode.',
+        'Not transmitting: Rig Setup > keying. Yaesu FTX-1 = DTR on the Standard COM port, break-in on.',
+        'Errors are written to zbm2cw_debug.log in the settings folder.',
+    ]),
+]
+
+
+class HelpWindow:
+    def __init__(self, root):
+        w = self.w = tk.Toplevel(root)
+        w.title('ZBM2 CW Tool - Quick start')
+        w.configure(bg=BG)
+        w.geometry('820x620')
+        t = tk.Text(w, bg='#000000', fg=FG, wrap='word', font=(UI, -16), relief='flat', padx=14, pady=10)
+        t.pack(fill='both', expand=True)
+        t.tag_configure('h', foreground=BG, background=ACC, font=(UI, -18))
+        t.tag_configure('dim', foreground=DIM)
+        for head, lines in QUICK_START:
+            t.insert('end', f' {head} ', 'h')
+            t.insert('end', '\n')
+            for ln in lines:
+                t.insert('end', '  * ' + ln + '\n')
+            t.insert('end', '\n')
+        t.insert('end', 'Hover over anything on the main screen for a tip.\n'
+                        'Full manual: https://github.com/ko6ejv/zbm2-cw-tool#readme\n', 'dim')
+        t.configure(state='disabled')
+        bar = tk.Frame(w, bg=BG)
+        bar.pack(fill='x', pady=6)
+        ttk.Button(bar, text='Open full manual', command=lambda: __import__('webbrowser').open(
+            'https://github.com/ko6ejv/zbm2-cw-tool#readme')).pack(side='left', padx=8)
+        ttk.Button(bar, text='Close', command=w.destroy).pack(side='right', padx=8)
 
 
 class SetupWizard:

@@ -18,7 +18,7 @@ import numpy as np
 
 from deepcw_engine import PosteriorStitcher, normalize_spectrogram
 
-_HERE = os.path.dirname(os.path.abspath(__file__))
+_HERE = getattr(__import__('sys'), '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))  # bundled .exe
 MODEL = os.path.join(_HERE, 'models', 'deepcw.onnx')
 META = os.path.join(_HERE, 'models', 'deepcw.onnx.json')
 
