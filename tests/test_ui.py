@@ -146,6 +146,9 @@ def test_band_tune_update_buttons(app):
     pump(root, 1.0)
     assert calls == ['20M']
     assert a.btn_update.winfo_ismapped()
+    c1 = a.btn_update.cget('bg')
+    pump(root, 0.7)
+    assert a.btn_update.cget('bg') != c1                       # it blinks
     assert not a._errors, a._errors
 
 

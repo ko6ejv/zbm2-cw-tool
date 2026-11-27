@@ -705,11 +705,24 @@ class App:
             self.btn_update.config(text=f' NEW VERSION {rel["version"]} - click to update ')
             if not self.btn_update.winfo_ismapped():
                 self.btn_update.pack(anchor='w', pady=(3, 0))
+            if not getattr(self, '_upd_blinking', False):
+                self._upd_blinking = True
+                self._blink_update(True)
             self.set_status(f'ZBM2 CW Tool {rel["version"]} is out (you have {__version__}).')
             if not quiet:
                 self._update_click()
         elif not quiet:
             self.set_status(f'You have the latest version ({__version__}).')
+
+    def _blink_update(self, on):
+        """Orange / black flash until clicked (or while downloading)."""
+        b = self.btn_update
+        if str(b.cget('state')) == 'disabled':
+            b.config(bg=ACC, fg=BG)
+            self._upd_blinking = False
+            return
+        b.config(bg=ACC if on else BG, fg=BG if on else ACC)
+        self.root.after(600, lambda: self._blink_update(not on))
 
     def _update_click(self):
         rel = self._update_rel

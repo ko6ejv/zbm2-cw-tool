@@ -1,3 +1,7 @@
+## ZBM2 CW Tool 3.5.6
+
+- NEW VERSION button blinks until clicked.
+
 ## ZBM2 CW Tool 3.5.5
 
 - Slow senders: speed down to 4 WPM (all-letter-pairs view), word spaces by timing below 10 WPM. Tested on a live 5 WPM station.
