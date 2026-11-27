@@ -138,7 +138,7 @@ def test_windows_open(app):
 def test_band_tune_update_buttons(app):
     a, root = app, app.root
     calls = []
-    a.eng.qsy_band = lambda b: calls.append(b) or 14040000
+    a.eng.qsy_band = lambda b: calls.append(b) or (14026000, True)
     a._qsy_band('20M')
     a.eng.tune_antenna = lambda: (False, 'no CAT tuner')
     a._tune()

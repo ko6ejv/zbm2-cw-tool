@@ -3,7 +3,7 @@ import json
 import os
 import sys
 
-__version__ = '3.5.3'
+__version__ = '3.5.4'
 
 HERE = os.path.dirname(os.path.abspath(sys.argv[0]))
 if getattr(sys, 'frozen', False):          # installed .exe: Program Files is read-only -> per-user folder

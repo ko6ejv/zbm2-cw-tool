@@ -169,8 +169,8 @@ class App:
                                     state='readonly')
         self.cb_band.pack(side='left', padx=(0, 4))
         self.cb_band.bind('<<ComboboxSelected>>', lambda e: self._qsy_band(self.v_band.get().split()[0]))
-        Tip(self.cb_band, 'Change band (CAT). Goes back to where you last were on that band, '
-                          'else a common CW frequency.')
+        Tip(self.cb_band, 'Change band (CAT). Puts you at the bottom of your license class\'s CW privileges '
+                          'on that band (1 kHz in). The number is stations active there right now.')
         b_tune = ttk.Button(fr0, text='TUNE', width=5, command=self._tune)
         b_tune.pack(side='left', padx=(0, 4))
         b_spots = ttk.Button(fr0, text='SPOTS', width=6, command=lambda: SpotsWindow(self))
@@ -626,9 +626,11 @@ class App:
     def _qsy_band(self, band):
         def job():
             try:
-                hz = self.eng.qsy_band(band)
-                save_cfg(self.cfg)
-                self._ui(lambda: self.set_status(f'{band}: {hz / 1e6:.3f} MHz'))
+                hz, ok = self.eng.qsy_band(band)
+                lic = self.cfg.get('license_class', 'Technician')
+                msg = (f'{band}: {hz / 1e6:.3f} MHz - bottom of your {lic} CW privileges' if ok else
+                       f'{band}: {hz / 1e6:.3f} MHz - listen only, no {lic} CW privileges on {band}')
+                self._ui(lambda: self.set_status(msg, err=not ok))
             except Exception as e:
                 m = f'Band change: {e}'
                 self._ui(lambda: self.set_status(m, err=True))

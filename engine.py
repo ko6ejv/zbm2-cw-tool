@@ -475,9 +475,6 @@ class Engine:
                         m, pb = rig.get_mode()
                         self.freq, self.mode = f or 0, m or ''
                         self.rig_ok, self.rig_err = True, ''
-                        b = Q.band_for(self.freq)
-                        if b in BAND_CW:
-                            self.cfg.setdefault('band_mem', {})[b] = int(self.freq)
                 else:
                     self.rig_ok, self.rig_err = False, 'no CAT'
             except Exception as e:
@@ -531,20 +528,16 @@ class Engine:
 
     # ---- quick band change + antenna tuner (CAT) ----
     def qsy_band(self, band):
-        """Jump to a band: back to where you were last on it, else a common CW spot. -> Hz"""
+        """Jump to the bottom of your license's CW privileges on a band. -> (Hz, can_transmit)"""
         if self.tx.busy.is_set():
             raise RuntimeError('not while transmitting')
-        mem = self.cfg.setdefault('band_mem', {})
-        cur = Q.band_for(self.freq)
-        if cur and self.freq:
-            mem[cur] = int(self.freq)
-        hz = int(mem.get(band) or BAND_CW[band])
+        hz, ok = Q.band_start(band, self.cfg.get('license_class', 'Technician'))
         if type(self.rig) is RC.NoRig:
             raise RuntimeError('no CAT connection')
         if not self.rig.set_freq(hz):
             raise RuntimeError(f'radio refused {hz / 1e6:.3f} MHz')
         self.freq = hz
-        return hz
+        return hz, ok
 
     def tune_antenna(self):
         """Start the radio's tuner (internal or external ATU) by CAT. -> (ok, message)"""

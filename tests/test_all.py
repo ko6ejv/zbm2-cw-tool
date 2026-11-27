@@ -318,3 +318,15 @@ def test_zbitx_preset():
     r = radios.apply_radio(cfg, 'HF Signals zBitx v2', lambda c, k: c.__setitem__('profile', k))
     assert r and cfg['rig_model'] == 3023 and cfg['cat_baud'] == 19200
     assert cfg['key_method'] == 'audio' and cfg['ptt_method'] == 'CAT' and cfg['hamlib_ptt'] == 'RIG'
+
+
+def test_band_start_is_bottom_of_privileges():
+    assert Q.band_start('40M', 'General') == (7026000, True)
+    assert Q.band_start('40M', 'Amateur Extra') == (7001000, True)
+    assert Q.band_start('80M', 'Technician') == (3526000, True)
+    assert Q.band_start('20M', 'Technician') == (14001000, False)     # no Tech CW on 20 m: listen only
+    assert Q.band_start('60M', 'General') == (5332000, True)
+    for lic in ('Technician', 'General', 'Amateur Extra'):
+        for b in Q.BAND_EDGES:
+            hz, ok = Q.band_start(b, lic)
+            assert Q.cw_allowed(hz, lic)[0] == ok, (lic, b)

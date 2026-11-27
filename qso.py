@@ -60,6 +60,24 @@ LICENSE_CLASSES = ['Technician', 'General', 'Amateur Extra']
 CH60_CW = (5332000, 5348000, 5358500, 5373000, 5405000)   # 97.303(h): CW on the channel centre
 
 
+BAND_EDGES = {'160M': (1.8, 2.0), '80M': (3.5, 4.0), '60M': (5.3305, 5.4065), '40M': (7.0, 7.3),
+              '30M': (10.1, 10.15), '20M': (14.0, 14.35), '17M': (18.068, 18.168), '15M': (21.0, 21.45),
+              '12M': (24.89, 24.99), '10M': (28.0, 29.7), '6M': (50.0, 54.0)}
+
+
+def band_start(band, lic):
+    """Bottom of your CW privileges on a band (1 kHz inside the edge). -> (Hz, can_transmit)"""
+    if band == '60M':
+        ok = lic in ('General', 'Amateur Extra')
+        return CH60_CW[0], ok
+    lo_b, hi_b = BAND_EDGES[band]
+    segs = {'Technician': _TECH, 'General': _GENERAL}.get(lic, _EXTRA) + _VHF_UP
+    inside = sorted(lo for lo, hi in segs if lo_b <= lo < hi_b)
+    if inside:
+        return int(round(inside[0] * 1e6)) + 1000, True
+    return int(round(lo_b * 1e6)) + 1000, False            # no TX privileges here: listen at the bottom
+
+
 def cw_allowed(freq_hz, lic):
     """(ok, message). Unknown frequency -> allowed (no CAT)."""
     if not freq_hz:

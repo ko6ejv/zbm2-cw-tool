@@ -1,3 +1,7 @@
+## ZBM2 CW Tool 3.5.4
+
+- BAND goes to the bottom of your class's CW privileges (1 kHz in); listen-only bands say so. Band memory removed.
+
 ## ZBM2 CW Tool 3.5.3
 
 - zBitx v2 preset: IC-746 CAT (#3023, 19200), tone keying in DIGI, CAT PTT.
