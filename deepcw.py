@@ -79,8 +79,11 @@ class DeepCW:
 
     def reset(self):
         self.st = PosteriorStitcher(self.meta)
-        self._prev = None                # (char, end frame) of the last committed character
+        self._prev = None                # (char, end frame) of the last committed character in a word
+        self._prev_any = None            # ... ignoring the model's word spaces
+        self._last_txt = None            # end frame of the last letter printed in slow mode
         self._dits = []                  # recent dit-length estimates (s) from character timing
+        self._dits_all = []
         self.wpm = None                  # their speed, from the decoded characters themselves
         self.snr_db = None
         self.audio = np.zeros(0, dtype=np.float32)
@@ -171,38 +174,90 @@ class DeepCW:
             cut = keep_from - self.off
             self.audio = self.audio[cut:]
             self.off += cut
-        self._time_chars(self.st.last_committed)
+        spans = self.st.last_committed
+        self._time_chars(spans)
         if committed is None or not committed.text:
             return ''
-        text = (' ' if committed.prepend_space and self.transcript else '') + committed.text
+        if self.wpm is not None and self.wpm < 10:
+            text = self._respace(spans)
+        else:
+            text = (' ' if committed.prepend_space and self.transcript else '') + committed.text
+            self._last_txt = next((sp.end_frame for sp in reversed(spans) if not sp.char.isspace()),
+                                  self._last_txt)
         self.transcript = (self.transcript + text)[-2000:]
         return text
 
     # ---------- their speed, from when each character ends ----------
     FRAME_S = None
 
+    def _units(self, code):
+        return sum(1 if e == '.' else 3 for e in code) + (len(code) - 1)     # length of the letter, dits
+
     def _time_chars(self, spans):
-        """Inside a word, one character ends (3 + its own length) dits after the one before it.
-        Every pair of letters is a speed measurement; the median of the recent ones is their WPM."""
+        """Speed from when each character ends. Inside a word a letter ends (3 + its own length) dits
+        after the one before it, so every pair of letters is a measurement.
+        A: pairs inside the model's words (normal speeds). B: all neighbouring letters, ignoring the
+        model's spaces - very slow senders (5 WPM) get a space after every letter, so A has nothing;
+        word gaps only add a high tail, so a low percentile of B is the dit."""
         fs = self.st.hop_length / self.sr
         for sp in spans:
             if sp.char.isspace():
                 self._prev = None
                 continue
             code = MORSE.get(sp.char)
-            if self._prev is not None and code:
-                units = 3 + sum(1 if e == '.' else 3 for e in code) + (len(code) - 1)
-                dt = (sp.end_frame - self._prev[1]) * fs
-                dit = dt / units
-                if 0.02 <= dit <= 0.2:                      # 6 .. 60 WPM
+            if not code:
+                self._prev = self._prev_any = None
+                continue
+            u = 3 + self._units(code)
+            if self._prev is not None:
+                dit = (sp.end_frame - self._prev[1]) * fs / u
+                if 0.02 <= dit <= 0.3:                      # 4 .. 60 WPM
                     self._dits = (self._dits + [dit])[-40:]
-            self._prev = (sp.char, sp.end_frame)
-        if len(self._dits) >= 5:
+            if self._prev_any is not None:
+                dit = (sp.end_frame - self._prev_any[1]) * fs / u
+                if 0.02 <= dit <= 0.3:
+                    self._dits_all = (self._dits_all + [dit])[-40:]
+            self._prev = self._prev_any = (sp.char, sp.end_frame)
+        w = None
+        if len(self._dits) >= 5 and len(self._dits_all) < 8:
             r = np.asarray(self._dits[-16:])
             med = float(np.median(r))
-            spread = float(np.median(np.abs(r - med))) / med     # garbled copy -> letters disagree
-            if spread < 0.15:
-                self.wpm = 1.2 / med
+            if float(np.median(np.abs(r - med))) / med < 0.15:   # garbled copy -> letters disagree
+                w = 1.2 / med
+        if len(self._dits_all) >= 8:            # all-pairs view wins once it has enough letters
+            r = np.sort(np.asarray(self._dits_all[-24:]))
+            low = r[:max(4, int(len(r) * 0.6))]                   # intra-word pairs; word gaps sit above
+            med = float(np.median(low))
+            spread = float(np.median(np.abs(low - med))) / med
+            b = 1.2 / med
+            # garbled copy can look consistent too: trust it alone only with tight timing, else it
+            # must agree with the within-word view
+            if (spread < 0.08 and len(self._dits_all) >= 14) or (w is not None and abs(b - w) < 0.25 * w) or (
+                    spread < 0.15 and len(self._dits) >= 5 and
+                    abs(b - 1.2 / float(np.median(self._dits[-16:]))) < 0.25 * b):
+                w = b
+        if w is not None:
+            self.wpm = w
+
+    def _respace(self, spans):
+        """Slow senders: the model's spaces fall between letters, so place word spaces by timing
+        instead (letter gaps measure ~1-3.5 dits, word gaps 4.3-7 on CTC timing: split at 4)."""
+        dit = 1.2 / self.wpm
+        fs = self.st.hop_length / self.sr
+        out = []
+        for sp in spans:
+            code = MORSE.get(sp.char)
+            if sp.char.isspace() or not code:
+                continue
+            if self._last_txt is not None:
+                gap = (sp.end_frame - self._last_txt) * fs / dit - self._units(code)
+                if gap >= 4.0:
+                    out.append(' ')
+            elif self.transcript:
+                out.append(' ')
+            out.append(sp.char)
+            self._last_txt = sp.end_frame
+        return ''.join(out)
 
     def _step(self, end_sample, final):
         return self._run(self.st.window_start_frame(end_sample), end_sample, final)

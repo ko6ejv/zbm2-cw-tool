@@ -1,3 +1,7 @@
+## ZBM2 CW Tool 3.5.5
+
+- Slow senders: speed down to 4 WPM (all-letter-pairs view), word spaces by timing below 10 WPM. Tested on a live 5 WPM station.
+
 ## ZBM2 CW Tool 3.5.4
 
 - BAND goes to the bottom of your class's CW privileges (1 kHz in); listen-only bands say so. Band memory removed.
