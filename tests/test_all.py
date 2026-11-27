@@ -332,3 +332,13 @@ def test_band_start_is_bottom_of_privileges():
         for b in Q.BAND_EDGES:
             hz, ok = Q.band_start(b, lic)
             assert Q.cw_allowed(hz, lic)[0] == ok, (lic, b)
+
+
+def test_ft991_preset():
+    import radios
+    from config import DEFAULTS
+    cfg = dict(DEFAULTS)
+    r = radios.apply_radio(cfg, 'Yaesu FT-991 / FT-991A', lambda c, k: c.__setitem__('profile', k))
+    assert r and cfg['rig_model'] == 1035 and cfg['cat_baud'] == 38400
+    assert cfg['key_method'] == 'serial' and cfg['key_line'] == 'DTR' and cfg['ptt_method'] == 'VOX'
+    assert 'tuner' not in r                       # Hamlib's own TUNE op for the FT-991

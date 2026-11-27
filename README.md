@@ -101,7 +101,7 @@ It installs everything (Python, the neural decoder, Hamlib, serial-port access) 
 | Yaesu FT-891 | Radio USB, *Enhanced* port (#1036, menu CAT RATE) | DigiRig on the DATA jack (no USB sound card in the radio) | DTR on the *Standard* port (PC KEYING = DTR, break-in on) |
 | Yaesu FT-857D | DigiRig to the CAT jack (#1022, menu 019 CAT RATE, 4800 default) | DigiRig on the DATA jack | Clean CW tone, radio in USB / DIG |
 | Yaesu FT-817 / FT-818 | DigiRig to ACC (#1020 / #1041) | DigiRig on the DATA jack | Clean CW tone, radio in USB / DIG |
-| Yaesu FT-991A | Radio USB, *Enhanced* port (#1035) | Radio's USB sound card | Radio's keyer |
+| Yaesu FT-991 / FT-991A | Radio USB, *Enhanced* port (#1035, 38400) | Radio's USB Audio CODEC | DTR on the *Standard* port (PC KEYING = DTR, BK-IN on) |
 | Elecraft KX3 | KXUSB / DigiRig serial to ACC1 (#2045, CONFIG RS232) | PHONES to a USB sound card / DigiRig | Radio's keyer (KY), break-in on |
 | Xiegu G90 | DE-19 or DigiRig to ACC (#3088, 19200) | Same cable | Clean CW tone, radio in USB |
 | (tr)uSDX (DL2MAN) | DigiRig (tr)uSDX cable or the radio's USB-C (#2055, 115200) | DigiRig, or the trusdx-audio driver | Clean CW tone, radio in USB, PTT by CAT |

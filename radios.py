@@ -29,10 +29,12 @@ RADIOS = {
     'Yaesu FT-817 / FT-818': dict(
         profile='digirig_hf', rig_model=1020, cat_baud=4800,
         note='DigiRig to the ACC (CAT) and DATA jacks. Radio in USB or DIG mode for tone CW.'),
-    'Yaesu FT-991A': dict(
-        profile='usbrig', rig_model=1035, cat_baud=38400, tuner='W AC002; 0',
-        note='One USB cable (CAT on the "Enhanced" port, USB Audio CODEC for sound). CW is sent by the '
-             "radio's keyer; turn break-in ON."),
+    'Yaesu FT-991 / FT-991A': dict(
+        profile='usbrig', rig_model=1035, cat_baud=38400, key_method='serial', key_line='DTR',
+        ptt_method='VOX', audio_hint=['USB Audio CODEC'], key_port_hint='Standard',
+        note='One USB cable: CAT on the "Enhanced" COM port (menu CAT RATE must match the speed here), CW '
+             'keying on the "Standard" COM port (menu PC KEYING = DTR), sound through the USB Audio CODEC. '
+             'Turn BK-IN on. TUNE runs the built-in tuner. Same setup for the FT-991 and FT-991A.'),
     'Elecraft KX3': dict(
         profile='usbrig', rig_model=2045, cat_baud=38400, key_method='rigkeyer', ptt_method='VOX',
         audio_hint=['USB PnP Sound', 'USB Audio Device', 'USB Audio CODEC'],

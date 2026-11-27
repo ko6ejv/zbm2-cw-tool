@@ -262,7 +262,10 @@ class HamlibRig(NoRig):
             for f in ('SBKIN', 'FBKIN'):
                 if self.cmd('u ' + f)[0].get('_', ['0'])[0] == '1':
                     return True
-            return self.cmd('U SBKIN 1')[1] == 0
+            for f in ('SBKIN', 'FBKIN'):           # FT-991 etc. only have plain break-in (FBKIN = BI)
+                if self.cmd(f'U {f} 1')[1] == 0:
+                    return True
+            return False
         except Exception:
             return False
 
