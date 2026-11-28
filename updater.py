@@ -5,6 +5,7 @@ newer()   -> True when that version is above ours
 how()     -> 'installer' (Windows .exe install), 'git' (git clone, e.g. uConsole) or 'page' (open the release page)
 apply()   -> does the update for that case
 """
+import re
 import json
 import os
 import subprocess
@@ -102,3 +103,13 @@ if __name__ == '__main__':
     r = latest()
     print('this:', __version__, '| latest:', r and r['version'], '| newer:', bool(r and newer(r['version'])),
           '| update by:', how())
+
+
+def changes_since(seen, text, upto=__version__):
+    """CHANGELOG sections newer than `seen`, up to `upto`, newest first: [(version, body)]."""
+    out = []
+    for m in re.finditer(r'^## ZBM2 CW Tool (\S+)\s*\n(.*?)(?=^## |\Z)', text, re.M | re.S):
+        v, body = m.group(1), m.group(2).strip()
+        if newer(v, seen) and not newer(v, upto):
+            out.append((v, body))
+    return out

@@ -188,3 +188,20 @@ def test_spots_window_and_band_counts(app):
     assert any('40M  1' == v for v in a.cb_band.cget('values'))
     w.w.destroy()
     assert not a._errors, a._errors
+
+
+def test_whats_new_after_update(app):
+    import app as A
+    a, root = app, app.root
+    pump(root, 1.6)                                  # startup check runs at 1.5 s
+    tops = [w for w in root.winfo_children() if isinstance(w, tk.Toplevel)]
+    assert any("What's new" in w.title() for w in tops)
+    assert a.cfg['seen_version'] == A.__version__
+    for w in tops:
+        w.destroy()
+    a._whats_new_check()                             # second start: nothing
+    pump(root, 0.2)
+    assert not [w for w in root.winfo_children() if isinstance(w, tk.Toplevel)]
+    A.WhatsNewWindow(root)                           # HELP button path
+    pump(root, 0.2)
+    assert not a._errors, a._errors

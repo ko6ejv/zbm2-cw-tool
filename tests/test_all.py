@@ -342,3 +342,13 @@ def test_ft991_preset():
     assert r and cfg['rig_model'] == 1035 and cfg['cat_baud'] == 38400
     assert cfg['key_method'] == 'serial' and cfg['key_line'] == 'DTR' and cfg['ptt_method'] == 'VOX'
     assert 'tuner' not in r                       # Hamlib's own TUNE op for the FT-991
+
+
+def test_changes_since():
+    from updater import changes_since
+    log = ("## ZBM2 CW Tool 3.5.7\n\n- a\n\n## ZBM2 CW Tool 3.5.6\n\n- b\n\n"
+           "## ZBM2 CW Tool 3.5.5\n\n- c\n")
+    assert [v for v, _ in changes_since('3.5.5', log, '3.5.7')] == ['3.5.7', '3.5.6']
+    assert changes_since('3.5.7', log, '3.5.7') == []
+    assert changes_since('3.5.6', log, '3.5.7')[0][1] == '- a'
+    assert changes_since('3.5.6', open('CHANGELOG.md').read(), '3.5.7')[0][0] == '3.5.7'

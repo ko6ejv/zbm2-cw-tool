@@ -119,6 +119,7 @@ class App:
             self.root.after(6000, lambda: self.check_updates(quiet=True))
         if not self.cfg.get('setup_done'):
             self.root.after(400, lambda: SetupWizard(self))
+        self.root.after(1500, self._whats_new_check)
 
     # ================= UI =================
     def _build_ui(self):
@@ -686,6 +687,23 @@ class App:
                                'Green = good, yellow = fair, red = poor.')
 
     # ---- updates ----
+    def _whats_new_check(self):
+        """First start after an update: show what changed since the last version this user ran."""
+        seen = self.cfg.get('seen_version', '')
+        if seen == __version__:
+            return
+        if not seen and not self.cfg.get('setup_done'):
+            seen = __version__                  # brand-new install: nothing to show
+        elif not seen:
+            seen = '3.5.6'                      # updated from a version before this window existed
+        self.cfg['seen_version'] = __version__
+        try:
+            save_cfg(self.cfg)
+        except Exception:
+            pass
+        if seen != __version__:
+            WhatsNewWindow(self.root, since=seen)
+
     def check_updates(self, quiet=False):
         """Look for a newer release on GitHub (background). quiet: only speak up when there is one."""
         def job():
@@ -2117,7 +2135,56 @@ class HelpWindow:
             'https://github.com/ko6ejv/zbm2-cw-tool#readme')).pack(side='left', padx=8)
         if app is not None:
             ttk.Button(bar, text='Check for updates', command=lambda: app.check_updates()).pack(side='left', padx=8)
+        ttk.Button(bar, text="What's new", command=lambda: WhatsNewWindow(root)).pack(side='left', padx=8)
         ttk.Button(bar, text='Close', command=w.destroy).pack(side='right', padx=8)
+
+
+def _changelog():
+    for d in (RES, os.path.dirname(os.path.abspath(__file__))):
+        try:
+            with open(os.path.join(d, 'CHANGELOG.md'), encoding='utf-8') as f:
+                return f.read()
+        except OSError:
+            pass
+    return ''
+
+
+class WhatsNewWindow:
+    """Shown once after an update (and from HELP): CHANGELOG entries since the last version run."""
+    def __init__(self, root, since=None):
+        from updater import changes_since
+        text = _changelog()
+        items = changes_since(since, text) if since else changes_since('0', text)[:5]
+        w = self.w = tk.Toplevel(root)
+        w.title(f"What's new in ZBM2 CW Tool {__version__}")
+        w.configure(bg=BG)
+        w.geometry('720x480')
+        w.transient(root)
+        t = tk.Text(w, bg='#000000', fg=FG, wrap='word', font=(UI, -16), relief='flat', padx=14, pady=10)
+        t.pack(fill='both', expand=True)
+        t.tag_configure('h', foreground=BG, background=ACC, font=(UI, -18))
+        t.tag_configure('b', foreground=ACC)
+        if not items:
+            t.insert('end', f'You are on {__version__}.\n')
+        for v, body in items:
+            t.insert('end', f' {v} ', 'h')
+            t.insert('end', '\n')
+            for ln in body.splitlines():
+                ln = ln.strip()
+                if not ln:
+                    continue
+                t.insert('end', '  * ' if ln.startswith(('- ', '* ')) else '  ')
+                for i, part in enumerate(re.split(r'\*\*', ln.lstrip('-* '))):
+                    t.insert('end', part, 'b' if i % 2 else ())
+                t.insert('end', '\n')
+            t.insert('end', '\n')
+        t.configure(state='disabled')
+        bar = tk.Frame(w, bg=BG)
+        bar.pack(fill='x', pady=6)
+        ttk.Button(bar, text='Full change log', command=lambda: __import__('webbrowser').open(
+            'https://github.com/ko6ejv/zbm2-cw-tool/blob/main/CHANGELOG.md')).pack(side='left', padx=8)
+        ttk.Button(bar, text='OK', command=w.destroy).pack(side='right', padx=8)
+        w.focus_set()
 
 
 class SetupWizard:

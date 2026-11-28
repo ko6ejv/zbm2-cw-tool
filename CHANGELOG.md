@@ -1,3 +1,8 @@
+## ZBM2 CW Tool 3.5.7
+
+- **What's new** window after each update (also in HELP).
+- Yaesu FT-991 / FT-991A preset: DTR keying on the Standard port, Hamlib TUNE, break-in falls back to FBKIN.
+
 ## ZBM2 CW Tool 3.5.6
 
 - NEW VERSION button blinks until clicked.
