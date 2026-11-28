@@ -97,6 +97,7 @@ class Engine:
         self.rig_ok, self.rig_err = False, ''
         self.gt = GridTrackerLink(cfg['gt_host'], cfg['gt_port'], cfg['gt_enable'])
         self.qso = Q.QSO(cfg['call'])
+        self.qso.expert = bool(cfg.get('expert_mode'))
         self.tx = Transmitter(on_start=lambda t: emit('txstart', t), on_char=lambda c: emit('txchar', c),
                               on_done=self._tx_done)
         self.tx_owner = 'qso'
@@ -163,6 +164,7 @@ class Engine:
         self.gt = GridTrackerLink(c['gt_host'], c['gt_port'], c['gt_enable'])
         my = c['call'].upper()
         self.qso.my_call = self.ender.my = self.room.my = my
+        self.qso.expert = bool(c.get('expert_mode'))
         if self._threads:
             self._start_rbn()
         self.lookup = ON.Lookup(c)
@@ -683,6 +685,10 @@ class Engine:
 
     def send(self, text, owner='qso'):
         text = ' '.join(text.upper().split())
+        if text and self.cfg.get('expert_mode') and not self.sim:
+            self.emit('blocked', 'Expert mode is on - send with your own paddle/keyer. '
+                                 'The app keeps decoding and logging. (Settings > Keying to turn it off.)')
+            return False
         if not text or not self.check_tx()[0]:
             return False
         self.ender.note_sent(text)

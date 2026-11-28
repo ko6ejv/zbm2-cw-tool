@@ -3,7 +3,7 @@ import json
 import os
 import sys
 
-__version__ = '3.5.7'
+__version__ = '3.5.8'
 
 HERE = os.path.dirname(os.path.abspath(sys.argv[0]))
 if getattr(sys, 'frozen', False):          # installed .exe: Program Files is read-only -> per-user folder
@@ -32,6 +32,7 @@ DEFAULTS = {
     'tx_drive': 50, 'sidetone': False, 'sidetone_out': '',
     'ptt_lead_ms': 100, 'ptt_tail_ms': 50, 'hamlib_ptt': 'RIG',
     'setup_done': False, 'profile': '', 'seen_version': '',
+    'expert_mode': False,                  # operator sends with own paddle/keyer; app decodes + logs, never keys
     'tone': 700, 'auto_tone': True, 'spec_span': 600, 'plain_english': True,
     # speed
     'turbo': False, 'turbo_wpm': 35,

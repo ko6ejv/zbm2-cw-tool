@@ -107,6 +107,7 @@ def rst_from_snr(snr_db):
 class QSO:
     def __init__(self, my_call):
         self.my_call = my_call.upper()
+        self.expert = False          # operator keys with own paddle: we never see what was sent
         self.reset()
 
     def reset(self):
@@ -179,6 +180,8 @@ class QSO:
         if g:
             setf('grid', g[-1])
 
+        if self.expert and self.rst_rcvd:
+            self.sent_report = True      # reports go both ways; assume the operator sent theirs
         if self.state in ('cq_heard', 'called_me') and (self.rst_rcvd or self.sent_report):
             self.state = 'in_qso'
             changed.add('state')

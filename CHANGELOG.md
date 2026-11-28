@@ -1,3 +1,8 @@
+## ZBM2 CW Tool 3.5.8
+
+- **Expert mode** (Settings > Keying): send with your own paddle or keyer. The app never transmits, keeps decoding their side, fills in call / RST / name / QTH, and LOG still logs the contact (ADIF, GridTracker, QRZ/LoTW).
+- SPOTS, HELP and Settings open one window each; clicking again brings it to the front.
+
 ## ZBM2 CW Tool 3.5.7
 
 - **What's new** window after each update (also in HELP).

@@ -174,7 +174,7 @@ class App:
                           'on that band (1 kHz in). The number is stations active there right now.')
         b_tune = ttk.Button(fr0, text='TUNE', width=5, command=self._tune)
         b_tune.pack(side='left', padx=(0, 4))
-        b_spots = ttk.Button(fr0, text='SPOTS', width=6, command=lambda: SpotsWindow(self))
+        b_spots = ttk.Button(fr0, text='SPOTS', width=6, command=lambda: self.single('spots', lambda: SpotsWindow(self)))
         b_spots.pack(side='left', padx=(0, 8))
         Tip(b_spots, 'Who is on CW right now (Reverse Beacon Network skimmers). Double-click one to tune to it. '
                      'The numbers in the BAND list are stations heard in the last 10 minutes near you.')
@@ -188,7 +188,7 @@ class App:
         ttk.Button(stats, text='Setup Wizard', command=lambda: SetupWizard(self)).grid(row=2, column=0, padx=2, pady=2)
         ttk.Button(stats, text='Set rig mode', command=self.set_cw_mode).grid(row=2, column=1, padx=2, pady=2)
         ttk.Button(stats, text='Rig Setup', command=self.open_settings).grid(row=2, column=2, padx=2, pady=2)
-        ttk.Button(stats, text='HELP', command=lambda: HelpWindow(self.root, self)).grid(row=2, column=3, padx=2, pady=2)
+        ttk.Button(stats, text='HELP', command=lambda: self.single('help', lambda: HelpWindow(self.root, self))).grid(row=2, column=3, padx=2, pady=2)
         self.cfg['emergency'] = False                  # never carried over from a previous run
         self.btn_emerg = ttk.Button(stats, text='EMERGENCY', style='Stop.TButton', command=self._toggle_emergency)
         self.btn_emerg.grid(row=2, column=4, padx=2, pady=2)
@@ -522,8 +522,9 @@ class App:
             ptt = f"{pm} {c.get('ptt_port') or c.get('cat_port') or '?'}"
         else:
             ptt = pm
+        tx = 'EXPERT - you key with your paddle' if c.get('expert_mode') else f'key: {key} | PTT: {ptt}'
         self.lbl_station.config(text=f"{c['call'] or 'NO CALL'} ({c['license_class']}) | {c['grid']} | {c['rig_model_name']} | "
-                                     f"CAT: {cat} | key: {key} | PTT: {ptt}")
+                                     f"CAT: {cat} | {tx}")
 
     def set_status(self, text, err=False):
         self.status.config(text=(' !! ' if err else ' ') + text, bg=TX if err else ACC)
@@ -1181,7 +1182,8 @@ class App:
         elif kind == 'blocked':
             self.sysmsg('NOT SENT - ' + val)
             self.set_status(val, err=True)
-            self.show_alert(license_block_alert(val))
+            if not val.startswith('Expert mode'):
+                self.show_alert(license_block_alert(val))
         elif kind == 'turbo_hint':
             from alerts import Alert
             who = val or 'They'
@@ -1469,7 +1471,22 @@ class App:
                               else self._tone_changed())
 
     def open_settings(self):
-        SettingsDialog(self)
+        self.single('settings', lambda: SettingsDialog(self))
+
+    def single(self, key, make):
+        """One window per kind: a second click brings the open one to the front."""
+        wins = self.__dict__.setdefault('_wins', {})
+        o = wins.get(key)
+        try:
+            if o is not None and o.w.winfo_exists():
+                o.w.deiconify()
+                o.w.lift()
+                o.w.focus_force()
+                return o
+        except Exception:
+            pass
+        o = wins[key] = make()
+        return o
 
     def quit(self):
         try:
@@ -1734,6 +1751,7 @@ class SettingsDialog:
         self._entry(t, 'ptt_lead_ms', 'PTT lead time (ms)', width=6)
         self._entry(t, 'ptt_tail_ms', 'PTT tail time (ms)', width=6)
         self._combo(t, 'sidetone_out', 'Sidetone speakers (NOT the rig)', self.outs, self.c['sidetone_out'], width=50)
+        self._check(t, 'expert_mode', 'EXPERT: I send with my own paddle/keyer (app decodes + logs, never transmits)')
         r = tk.Frame(t, bg=BG)
         r.pack(fill='x', padx=10, pady=8)
         ttk.Button(r, text='Windows Sound settings', command=lambda: os.system('start mmsys.cpl')
@@ -2005,7 +2023,7 @@ class SettingsDialog:
         c['min_wpm'], c['max_wpm'] = int(g('min_wpm')), int(g('max_wpm'))
         c['gt_enable'] = bool(g('gt_enable'))
         c['gt_port'] = int(g('gt_port'))
-        for k in ('bandcond_enable', 'rbn_enable', 'update_check', 'earcons_on', 'earcons_startup_only', 'earcon_speak', 'rec_autosave', 'auto_lookup', 'auto_qrz_upload',
+        for k in ('expert_mode', 'bandcond_enable', 'rbn_enable', 'update_check', 'earcons_on', 'earcons_startup_only', 'earcon_speak', 'rec_autosave', 'auto_lookup', 'auto_qrz_upload',
                   'auto_lotw_upload'):
             c[k] = bool(g(k))
         c['earcon_pitch'], c['earcon_wpm'] = int(g('earcon_pitch')), int(g('earcon_wpm'))
@@ -2135,7 +2153,8 @@ class HelpWindow:
             'https://github.com/ko6ejv/zbm2-cw-tool#readme')).pack(side='left', padx=8)
         if app is not None:
             ttk.Button(bar, text='Check for updates', command=lambda: app.check_updates()).pack(side='left', padx=8)
-        ttk.Button(bar, text="What's new", command=lambda: WhatsNewWindow(root)).pack(side='left', padx=8)
+        ttk.Button(bar, text="What's new", command=lambda: app.single('whatsnew', lambda: WhatsNewWindow(root))
+                   if app is not None else WhatsNewWindow(root)).pack(side='left', padx=8)
         ttk.Button(bar, text='Close', command=w.destroy).pack(side='right', padx=8)
 
 
@@ -2320,7 +2339,7 @@ class SetupWizard:
         self._sync()
         self._apply_live()
         self.close()
-        SettingsDialog(self.app)
+        self.app.single('settings', lambda: SettingsDialog(self.app))
 
     def close(self):
         self._polling = False

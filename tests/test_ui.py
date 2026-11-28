@@ -205,3 +205,38 @@ def test_whats_new_after_update(app):
     A.WhatsNewWindow(root)                           # HELP button path
     pump(root, 0.2)
     assert not a._errors, a._errors
+
+
+def test_expert_mode_never_sends_but_logs(app):
+    a, root = app, app.root
+    a.cfg['expert_mode'] = True
+    a.eng.cfg['expert_mode'] = True
+    a._refresh_station()
+    assert 'EXPERT' in a.lbl_station.cget('text')
+    assert a.send('CQ CQ DE KO6EJV K') is False
+    assert not a.eng.tx.busy.is_set()
+    a.qso.expert = True
+    a.qso.feed('KO6EJV DE W6XX W6XX K UR RST 579 NAME BOB KN ')
+    a._push_fields()
+    a.log_qso()
+    pump(root, 0.3)
+    assert 'LOGGED W6XX' in a.txt.get('1.0', 'end')
+    assert not a._errors, a._errors
+
+
+def test_one_window_per_kind(app):
+    import app as A
+    a, root = app, app.root
+    for _ in range(3):
+        a.single('spots', lambda: A.SpotsWindow(a))
+        a.single('help', lambda: A.HelpWindow(root, a))
+        a.open_settings()
+        pump(root, 0.1)
+    titles = [w.title() for w in root.winfo_children() if isinstance(w, tk.Toplevel)]
+    assert sum('spots' in t for t in titles) == 1
+    assert sum('Quick start' in t for t in titles) == 1
+    s = a._wins['spots']
+    s.w.destroy()
+    pump(root, 0.1)
+    assert a.single('spots', lambda: A.SpotsWindow(a)) is not s     # reopens after close
+    assert not a._errors, a._errors

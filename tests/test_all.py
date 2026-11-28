@@ -352,3 +352,17 @@ def test_changes_since():
     assert changes_since('3.5.7', log, '3.5.7') == []
     assert changes_since('3.5.6', log, '3.5.7')[0][1] == '- a'
     assert changes_since('3.5.6', open('CHANGELOG.md').read(), '3.5.7')[0][0] == '3.5.7'
+
+
+def test_expert_mode_qso_flow():
+    import qso as Q
+    q = Q.QSO('KO6EJV')
+    q.expert = True
+    for chunk in ['KO6EJV DE W6XX W6XX K ', 'R TNX UR RST 579 579 NAME BOB BOB QTH SAN DIEGO KN ',
+                  'TU 73 SK ']:
+        q.feed(chunk)
+    assert (q.call, q.rst_rcvd, q.name, q.state, q.they_ended) == ('W6XX', '579', 'BOB', 'in_qso', True)
+    q2 = Q.QSO('KO6EJV')                       # normal mode: 73 alone doesn't end without our report
+    for chunk in ['KO6EJV DE W6XX W6XX K ', 'UR RST 579 NAME BOB KN ', 'TU 73 SK ']:
+        q2.feed(chunk)
+    assert not q2.they_ended
