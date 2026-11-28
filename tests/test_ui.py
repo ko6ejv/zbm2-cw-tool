@@ -240,3 +240,27 @@ def test_one_window_per_kind(app):
     pump(root, 0.1)
     assert a.single('spots', lambda: A.SpotsWindow(a)) is not s     # reopens after close
     assert not a._errors, a._errors
+
+
+def test_layout_conditions_and_heard(app):
+    from alerts import Alert
+    a, root = app, app.root
+    before = a.txt.get('1.0', 'end')
+    a.show_alert(Alert(code='QRM', plain='x', action='ask', reply='SRI QRM PSE RPT'))
+    a.show_alert(Alert(code='QSB', plain='x', action='ask', reply='QSB PSE RPT'))
+    pump(root, 0.2)
+    assert a.txt.get('1.0', 'end') == before              # no [*** QRM ***] in the copy
+    assert a.lbl_rxcond.cget('text') == 'QRM QSB'
+    assert not a.banner.winfo_ismapped()
+    a.clear_banner('QRM')
+    assert a.lbl_rxcond.cget('text') == 'QSB'
+    # half-copied calls never show; a full call shows after 3 updates
+    rows = [(712.0, 'DSE', 37, 10, 'DSE DSE', 1), (650.0, 'W6XX', 22, 12, 'CQ DE W6XX', 2)]
+    assert [r[1] for r in a._stable_calls(rows)] == ['', '']
+    a._stable_calls(rows)
+    assert [r[1] for r in a._stable_calls(rows)] == ['', 'W6XX']
+    a.qso._new_partner('W6XX')
+    a._refresh_info()
+    assert a.lbl_heard.cget('text').startswith('W6XX  @ ')
+    assert a.ptxt.winfo_height() > 40 and a.txt.winfo_height() > 40
+    assert not a._errors, a._errors

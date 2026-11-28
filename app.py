@@ -180,8 +180,6 @@ class App:
                      'The numbers in the BAND list are stations heard in the last 10 minutes near you.')
         Tip(b_tune, "Start the radio's antenna tuner (built-in or external ATU) by CAT. Radios without a "
                     'CAT tuner command can send a short carrier for an automatic tuner (LDG etc.).')
-        self.lbl_freq = ttk.Label(fr0, text='--.---.---', style='Big.TLabel')
-        self.lbl_freq.pack(side='left')
         self._build_cond(stats)
         self.lbl_rig = ttk.Label(stats, text='rig: --', style='Dim.TLabel')
         self.lbl_rig.grid(row=1, column=0, columnspan=3, sticky='e')
@@ -196,7 +194,13 @@ class App:
                             'help (FCC 97.403 / 97.405 - immediate safety of life or property, when normal '
                             'communication is not available). Off again with one click, and on every restart.')
         tframe = tk.Frame(hdr, bg=BG)
-        tframe.pack(side='left', padx=10, fill='x', expand=True)
+        tframe.pack(side='left', padx=10)
+        fcen = tk.Frame(hdr, bg=BG)
+        fcen.pack(side='left', fill='both', expand=True)
+        big = -40 if C else (-96 if r.winfo_screenwidth() >= 2500 else -76)
+        self.lbl_freq = tk.Label(fcen, text='--.---.--', bg=BG, fg=ACC, font=(UI, big))
+        self.lbl_freq.pack(expand=True)
+        Tip(self.lbl_freq, 'Radio frequency (MHz.kHz.Hz), read by CAT.')
         tk.Label(tframe, text=' ZBM2 CW TOOL ', bg=ACC, fg=BG, font=(PIX, -18 if C else -32)).pack(
             anchor='w', pady=(2, 2) if C else (4, 6))
         self.lbl_station = tk.Label(tframe, bg=BG, fg=DIM, font=(UI, -13 if C else -16), justify='left',
@@ -273,6 +277,11 @@ class App:
         self.lbl_conf.pack(side='left', padx=(6, 0))
         Tip(self.lbl_conf, 'How well we are copying them: GOOD / SHAKY / LOST. Based on signal-to-noise '
                            'and how many characters we could not read.')
+        self.rx_conds = {}
+        self.lbl_rxcond = tk.Label(meter, text='', bg=PANEL, fg=ACC, font=(UI, -16), width=14, anchor='w')
+        self.lbl_rxcond.pack(side='left', padx=(6, 0))
+        Tip(self.lbl_rxcond, 'Band trouble on their signal right now: QRM = another station on top, '
+                             'QRN = static, QSB = fading. NEXT already holds a polite "please repeat".')
 
         # --- main area: spectrum + alert banner (shared) + tabs ---
         main = tk.Frame(r, bg=BG)
@@ -349,10 +358,14 @@ class App:
         left.pack(side='left', fill='both', expand=True, pady=(6, 0))
         self.specf, self.main_area = specf, main
 
-        cb = tk.Frame(left, bg=BG)
+        cb = tk.Frame(left, bg=BG, highlightthickness=1, highlightbackground=DIM)
         cb.pack(fill='x', pady=(0, 4))
+        self.lbl_heard = tk.Label(cb, text='', bg=BG, fg=RX, font=(UI, -22 if C else -30), anchor='w', padx=8)
+        self.lbl_heard.pack(side='left')
+        Tip(self.lbl_heard, 'The station the decoder is locked on: callsign (once copied in full), '
+                            'its tone and speed.')
         lc = tk.Label(cb, text='ON FREQ>', bg=BG, fg=DIM, font=(UI, -16))
-        lc.pack(side='left')
+        lc.pack(side='left', padx=(12, 0))
         Tip(lc, 'Every station we can hear right now, decoded at the same time (pileup mode). '
                 'Click one to work them - the main decoder locks onto their signal.')
         self.callers = tk.Frame(cb, bg=BG)
@@ -369,7 +382,7 @@ class App:
         tk.Label(hdr_e, text='  what the shorthand means', bg=BG, fg=DIM, font=(UI, -16)).pack(side='left')
         self.ptxt = tk.Text(self.engf, bg='#000000', fg=FG, wrap='word', font=(UI, -16), relief='flat',
                            height=2 if C else 5, padx=8, pady=4, highlightthickness=1, highlightbackground=DIM)
-        self.ptxt.pack(fill='x')
+        self.ptxt.pack(fill='both', expand=True)
         self.ptxt.tag_configure('them', foreground=RX)
         self.ptxt.tag_configure('me', foreground=TX)
         self.ptxt.tag_configure('live', foreground=DIM)
@@ -431,7 +444,7 @@ class App:
         self.lbl_means.pack(side='bottom', fill='x')
         sug.pack(side='bottom', fill='x', pady=(3 if C else 6, 0))
         if self.v_plain.get():
-            self.engf.pack(side='bottom', fill='x', pady=(3 if C else 6, 0))
+            self.engf.pack(side='bottom', fill='both', expand=True, pady=(3 if C else 6, 0))
         self.txt.pack(fill='both', expand=True)
 
         # --- right panel: the other station ---
@@ -824,6 +837,7 @@ class App:
 
     def _refresh_info(self):
         q = self.qso
+        self._show_heard()
         g = q.grid
         if g and self.cfg['grid'] and len(g) >= 4:
             try:
@@ -948,7 +962,20 @@ class App:
             t.on_show()
 
     # ---- DOS alert banner ----
+    COND_CODES = ('QRM', 'QRN', 'QSB')
+
+    def _show_rxcond(self):
+        on = [c for c in self.COND_CODES if c in self.rx_conds]
+        self.lbl_rxcond.config(text=' '.join(on), bg=ACC if on else PANEL, fg=BG if on else ACC)
+
     def show_alert(self, al, play=True, preload=True):
+        if al.code in self.COND_CODES:          # band trouble: small indicator, no banner, no inline tag
+            self.rx_conds[al.code] = al
+            self._show_rxcond()
+            if preload and al.reply and self.qso.call and self.current_tab() == 'qso' and not self.suggest_dirty:
+                self.v_sug.set(al.reply)
+            self.alert_codes.add(al.code)
+            return
         self.alert = al
         bad = al.severity == 'block'
         col = TX if bad else ACC
@@ -961,18 +988,6 @@ class App:
         if not self.banner.winfo_ismapped():
             self.banner.pack(fill='x', pady=(0, 6), before=self.nb)
         self._blink(6, col)
-        import time as _t
-        last = getattr(self, '_inline_alert', {})
-        tail = self.txt.get('end-40c', 'end-1c')
-        repeat = (_t.time() - last.get(al.code, 0) < 30) or tail.rstrip().endswith('***]')
-        if al.severity != 'info' and not repeat:   # mark where copy went bad, on its own line (once)
-            last[al.code] = _t.time()
-            self._inline_alert = last
-            if self.txt.get('end-2c', 'end-1c') not in ('\n', ''):
-                self.txt.insert('end', '\n')
-            self.txt.insert('end', f'[*** {al.code} ***]', 'alert_block' if bad else 'alert')
-            self.txt.insert('end', '\n')
-            self.txt.see('end')
         if play and al.severity != 'info':
             self.earcons.play('alert', {'PILEUP': 'QRZ?', 'QRO': 'QRO?'}.get(al.code, al.code))
         if preload and al.reply:
@@ -992,6 +1007,11 @@ class App:
         self.root.after(250, lambda: self._blink(n - 1, col))
 
     def clear_banner(self, code=None):
+        if code in self.COND_CODES:
+            self.rx_conds.pop(code, None)
+            self._show_rxcond()
+            self.alert_codes.discard(code)
+            return
         if code and self.alert and self.alert.code != code:
             return
         self.alert = None
@@ -1143,7 +1163,7 @@ class App:
         elif kind == 'spec':
             self._draw_spec(*val)
         elif kind == 'skim':
-            self.skim_rows = val
+            self.skim_rows = self._stable_calls(val)
             self._draw_callers()
         elif kind == 'rig':
             if self.rig_ok:
@@ -1303,7 +1323,38 @@ class App:
         self.lbl_lvl.config(text='CLIP!' if pk > -1 else 'low' if rms < -55 else f'{rms:.0f}dB',
                             fg=TX if pk > -1 else DIM)
 
+    def _stable_calls(self, rows):
+        """Drop half-copied calls: a call must look like a full callsign and repeat in 3 updates."""
+        seen = self.__dict__.setdefault('_call_seen', {})
+        now = set()
+        out = []
+        for r in rows:
+            call = r[1]
+            ok = bool(call) and re.fullmatch(Q.CALL_RE, call) and re.search(r'[A-Z]', call[:2]) \
+                and call not in Q.NOT_CALLS
+            if ok:
+                now.add(call)
+                seen[call] = seen.get(call, 0) + 1
+            out.append(r if ok and seen[call] >= 3 else (r[0], '') + tuple(r[2:]))
+        for c in list(seen):
+            if c not in now:
+                seen[c] = max(0, seen[c] - 1)
+                if not seen[c]:
+                    del seen[c]
+        return out
+
+    def _show_heard(self):
+        q = self.qso
+        if not q.call:
+            self.lbl_heard.config(text='listening...', fg=DIM)
+            return
+        tone = self.decoder.tone if self.decoder else self.v_tone.get()
+        wpm = self.lbl_rxwpm.cget('text')
+        self.lbl_heard.config(text=f'{q.call}  @ {tone:.0f} Hz' + (f'  {wpm} wpm' if wpm.strip('- ') else ''),
+                              fg=ACC if q.state in ('called_me', 'in_qso') else RX)
+
     def _draw_callers(self):
+        self._show_heard()
         rows = [r for r in self.skim_rows if r[1]][:6]
         keys = [(r[1], int(r[0])) for r in rows]
         if keys != self._caller_keys:

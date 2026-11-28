@@ -1,3 +1,10 @@
+## ZBM2 CW Tool 3.5.9
+
+- Frequency is big and centered in the header.
+- QRM / QRN / QSB no longer repeat in the copy: they show as a small chip next to COPY (NEXT still holds the "please repeat").
+- New box above the copy: the station you're locked on - callsign, tone and speed. Calls only appear once copied in full (no more half calls like "DSE").
+- Copy and PLAIN ENGLISH share the space evenly.
+
 ## ZBM2 CW Tool 3.5.8
 
 - **Expert mode** (Settings > Keying): send with your own paddle or keyer. The app never transmits, keeps decoding their side, fills in call / RST / name / QTH, and LOG still logs the contact (ADIF, GridTracker, QRZ/LoTW).
